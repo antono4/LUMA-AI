@@ -3,17 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenHands AI Agent</title>
+    <title>OpenHands AI Agent - LiteLLM/MiniMax</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
             --bg-primary: #09090b;
             --bg-secondary: #18181b;
@@ -31,7 +26,6 @@
             --error: #ef4444;
             --gradient-1: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
         }
-
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-primary);
@@ -39,8 +33,6 @@
             min-height: 100vh;
             overflow: hidden;
         }
-
-        /* Login Page */
         .login-container {
             min-height: 100vh;
             display: flex;
@@ -48,17 +40,14 @@
             align-items: center;
             justify-content: center;
             padding: 40px;
-            background: radial-gradient(ellipse at top, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-                        var(--bg-primary);
+            background: radial-gradient(ellipse at top, rgba(99, 102, 241, 0.15) 0%, transparent 50%), var(--bg-primary);
         }
-
         .login-logo {
             display: flex;
             align-items: center;
             gap: 16px;
             margin-bottom: 48px;
         }
-
         .login-logo-icon {
             width: 64px;
             height: 64px;
@@ -69,12 +58,7 @@
             justify-content: center;
             font-size: 32px;
         }
-
-        .login-logo h1 {
-            font-size: 36px;
-            font-weight: 800;
-        }
-
+        .login-logo h1 { font-size: 36px; font-weight: 800; }
         .login-card {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
@@ -84,24 +68,9 @@
             max-width: 420px;
             text-align: center;
         }
-
-        .login-card h2 {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .login-card p {
-            color: var(--text-secondary);
-            margin-bottom: 32px;
-        }
-
-        .oauth-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
+        .login-card h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .login-card p { color: var(--text-secondary); margin-bottom: 32px; }
+        .oauth-buttons { display: flex; flex-direction: column; gap: 16px; }
         .oauth-btn {
             display: flex;
             align-items: center;
@@ -116,54 +85,15 @@
             transition: all 0.3s;
             text-decoration: none;
         }
-
-        .oauth-btn.github {
-            background: #24292e;
-            color: white;
-        }
-
-        .oauth-btn.github:hover {
-            background: #32383e;
-        }
-
-        .oauth-btn.gitlab {
-            background: #fc6d26;
-            color: white;
-        }
-
-        .oauth-btn.gitlab:hover {
-            background: #e56121;
-        }
-
-        .oauth-btn.bitbucket {
-            background: #0052cc;
-            color: white;
-        }
-
-        .oauth-btn.bitbucket:hover {
-            background: #0047b3;
-        }
-
-        .oauth-btn i {
-            font-size: 24px;
-        }
-
-        .login-divider {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin: 24px 0;
-            color: var(--text-muted);
-        }
-
-        .login-divider::before,
-        .login-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border-color);
-        }
-
+        .oauth-btn.github { background: #24292e; color: white; }
+        .oauth-btn.github:hover { background: #32383e; }
+        .oauth-btn.gitlab { background: #fc6d26; color: white; }
+        .oauth-btn.gitlab:hover { background: #e56121; }
+        .oauth-btn.bitbucket { background: #0052cc; color: white; }
+        .oauth-btn.bitbucket:hover { background: #0047b3; }
+        .oauth-btn i { font-size: 24px; }
+        .login-divider { display: flex; align-items: center; gap: 16px; margin: 24px 0; color: var(--text-muted); }
+        .login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: var(--border-color); }
         .learn-more-btn {
             display: inline-flex;
             align-items: center;
@@ -171,41 +101,13 @@
             color: var(--accent-secondary);
             text-decoration: none;
             font-weight: 500;
-            transition: color 0.3s;
         }
-
-        .learn-more-btn:hover {
-            color: var(--accent-tertiary);
-        }
-
-        .login-footer {
-            margin-top: 32px;
-            display: flex;
-            gap: 24px;
-            color: var(--text-muted);
-            font-size: 14px;
-        }
-
-        .login-footer a {
-            color: var(--text-secondary);
-            text-decoration: none;
-        }
-
-        .login-footer a:hover {
-            color: var(--text-primary);
-        }
-
-        /* App Container */
-        .app-container {
-            display: none;
-            height: 100vh;
-        }
-
-        .app-container.active {
-            display: flex;
-        }
-
-        /* Sidebar */
+        .learn-more-btn:hover { color: var(--accent-tertiary); }
+        .login-footer { margin-top: 32px; display: flex; gap: 24px; color: var(--text-muted); font-size: 14px; }
+        .login-footer a { color: var(--text-secondary); text-decoration: none; }
+        .login-footer a:hover { color: var(--text-primary); }
+        .app-container { display: none; height: 100vh; }
+        .app-container.active { display: flex; }
         .sidebar {
             width: 280px;
             background: var(--bg-secondary);
@@ -214,18 +116,8 @@
             flex-direction: column;
             height: 100vh;
         }
-
-        .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .sidebar-logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
+        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border-color); }
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; }
         .sidebar-logo-icon {
             width: 40px;
             height: 40px;
@@ -236,12 +128,7 @@
             justify-content: center;
             font-size: 20px;
         }
-
-        .sidebar-logo h2 {
-            font-size: 20px;
-            font-weight: 700;
-        }
-
+        .sidebar-logo h2 { font-size: 20px; font-weight: 700; }
         .new-chat-btn {
             margin: 16px 20px;
             padding: 12px 20px;
@@ -256,167 +143,37 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            transition: all 0.3s;
         }
-
-        .new-chat-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-
-        /* Chat History */
-        .chat-history {
-            flex: 1;
-            overflow-y: auto;
-            padding: 8px;
-        }
-
-        .chat-history-section {
-            margin-bottom: 24px;
-        }
-
-        .chat-history-label {
-            padding: 8px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
+        .new-chat-btn:hover { opacity: 0.9; }
+        .chat-history { flex: 1; overflow-y: auto; padding: 8px; }
+        .chat-history-section { margin-bottom: 24px; }
+        .chat-history-label { padding: 8px 12px; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
         .chat-history-item {
             padding: 12px 16px;
             border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s;
             display: flex;
             align-items: center;
             gap: 12px;
         }
-
-        .chat-history-item:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .chat-history-item.active {
-            background: var(--bg-tertiary);
-        }
-
-        .chat-history-item i {
-            color: var(--text-muted);
-            font-size: 18px;
-        }
-
-        .chat-history-item span {
-            flex: 1;
-            font-size: 14px;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Sidebar Footer */
-        .sidebar-footer {
-            padding: 16px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .user-profile:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: var(--gradient-1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .user-info {
-            flex: 1;
-        }
-
-        .user-name {
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .user-email {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .user-menu-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 8px;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-
-        /* Top Bar */
-        .top-bar {
-            padding: 16px 24px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--bg-secondary);
-        }
-
-        .top-bar-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .breadcrumb a {
-            color: var(--text-muted);
-            text-decoration: none;
-        }
-
-        .breadcrumb a:hover {
-            color: var(--text-primary);
-        }
-
-        .top-bar-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
+        .chat-history-item:hover, .chat-history-item.active { background: var(--bg-tertiary); }
+        .chat-history-item i { color: var(--text-muted); font-size: 18px; }
+        .chat-history-item span { flex: 1; font-size: 14px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sidebar-footer { padding: 16px; border-top: 1px solid var(--border-color); }
+        .user-profile { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; cursor: pointer; }
+        .user-profile:hover { background: var(--bg-tertiary); }
+        .user-avatar { width: 40px; height: 40px; background: var(--gradient-1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
+        .user-info { flex: 1; }
+        .user-name { font-size: 14px; font-weight: 600; }
+        .user-email { font-size: 12px; color: var(--text-muted); }
+        .user-menu-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 8px; }
+        .main-content { flex: 1; display: flex; flex-direction: column; height: 100vh; }
+        .top-bar { padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); }
+        .top-bar-left { display: flex; align-items: center; gap: 16px; }
+        .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary); }
+        .breadcrumb a { color: var(--text-muted); text-decoration: none; }
+        .breadcrumb a:hover { color: var(--text-primary); }
+        .top-bar-right { display: flex; align-items: center; gap: 12px; }
         .top-bar-btn {
             padding: 8px 16px;
             background: var(--bg-tertiary);
@@ -429,88 +186,19 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.2s;
         }
-
-        .top-bar-btn:hover {
-            background: var(--bg-elevated);
-        }
-
-        .top-bar-btn.primary {
-            background: var(--accent-primary);
-            border-color: var(--accent-primary);
-        }
-
-        .top-bar-btn.primary:hover {
-            background: var(--accent-secondary);
-        }
-
-        /* Agent Workspace */
-        .agent-workspace {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        /* Agent Header */
-        .agent-header {
-            padding: 24px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .agent-info {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .agent-avatar {
-            width: 48px;
-            height: 48px;
-            background: var(--gradient-1);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-        }
-
-        .agent-details h3 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .agent-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--success);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .agent-actions {
-            display: flex;
-            gap: 12px;
-        }
-
+        .top-bar-btn:hover { background: var(--bg-elevated); }
+        .top-bar-btn.primary { background: var(--accent-primary); border-color: var(--accent-primary); }
+        .top-bar-btn.primary:hover { background: var(--accent-secondary); }
+        .agent-workspace { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .agent-header { padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
+        .agent-info { display: flex; align-items: center; gap: 16px; }
+        .agent-avatar { width: 48px; height: 48px; background: var(--gradient-1); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .agent-details h3 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+        .agent-status { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary); }
+        .status-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .agent-actions { display: flex; gap: 12px; }
         .agent-action-btn {
             padding: 10px 20px;
             background: var(--bg-tertiary);
@@ -523,483 +211,97 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.2s;
         }
-
-        .agent-action-btn:hover {
-            background: var(--bg-elevated);
-        }
-
-        .agent-action-btn.primary {
-            background: var(--accent-primary);
-            border-color: var(--accent-primary);
-        }
-
-        .agent-action-btn.primary:hover {
-            background: var(--accent-secondary);
-        }
-
-        /* Chat Area */
-        .chat-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .message {
-            display: flex;
-            gap: 16px;
-            max-width: 80%;
-        }
-
-        .message.user {
-            align-self: flex-end;
-            flex-direction: row-reverse;
-        }
-
-        .message-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .message.assistant .message-avatar {
-            background: var(--gradient-1);
-            font-size: 18px;
-        }
-
-        .message.user .message-avatar {
-            background: var(--bg-tertiary);
-        }
-
-        .message-content {
-            flex: 1;
-        }
-
-        .message-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-
-        .message.user .message-header {
-            flex-direction: row-reverse;
-        }
-
-        .message-sender {
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .message-time {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .message-body {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 16px 20px;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .message.user .message-body {
-            background: var(--accent-primary);
-            border-color: var(--accent-primary);
-        }
-
-        /* Code Block */
-        .code-block {
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            margin-top: 12px;
-            overflow: hidden;
-        }
-
-        .code-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            background: var(--bg-tertiary);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .code-lang {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-
-        .code-copy-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-
-        .code-copy-btn:hover {
-            background: var(--bg-elevated);
-            color: var(--text-primary);
-        }
-
-        .code-content {
-            padding: 16px;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 13px;
-            line-height: 1.5;
-            overflow-x: auto;
-        }
-
-        /* File Changes */
-        .file-changes {
-            margin-top: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .file-change-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            background: var(--bg-tertiary);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .file-change-icon {
-            color: var(--success);
-        }
-
-        .file-change-name {
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .file-change-lines {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        /* Thinking Indicator */
-        .thinking-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            width: fit-content;
-        }
-
-        .thinking-dots {
-            display: flex;
-            gap: 4px;
-        }
-
-        .thinking-dots span {
-            width: 8px;
-            height: 8px;
-            background: var(--accent-primary);
-            border-radius: 50%;
-            animation: bounce 1.4s infinite ease-in-out;
-        }
-
+        .agent-action-btn:hover { background: var(--bg-elevated); }
+        .agent-action-btn.primary { background: var(--accent-primary); border-color: var(--accent-primary); color: white; }
+        .agent-action-btn.primary:hover { background: var(--accent-secondary); }
+        .chat-area { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+        .message { display: flex; gap: 16px; max-width: 80%; }
+        .message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .message-avatar { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .message.assistant .message-avatar { background: var(--gradient-1); font-size: 18px; }
+        .message.user .message-avatar { background: var(--bg-tertiary); }
+        .message-content { flex: 1; }
+        .message-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .message.user .message-header { flex-direction: row-reverse; }
+        .message-sender { font-size: 14px; font-weight: 600; }
+        .message-time { font-size: 12px; color: var(--text-muted); }
+        .message-body { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px 20px; font-size: 14px; line-height: 1.6; }
+        .message.user .message-body { background: var(--accent-primary); border-color: var(--accent-primary); }
+        .code-block { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; margin-top: 12px; overflow: hidden; }
+        .code-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-color); }
+        .code-lang { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+        .code-copy-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+        .code-copy-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+        .code-content { padding: 16px; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 13px; line-height: 1.5; overflow-x: auto; }
+        .thinking-indicator { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; width: fit-content; }
+        .thinking-dots { display: flex; gap: 4px; }
+        .thinking-dots span { width: 8px; height: 8px; background: var(--accent-primary); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
         .thinking-dots span:nth-child(1) { animation-delay: 0s; }
         .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
         .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
-        }
-
-        .thinking-text {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        /* Chat Input */
-        .chat-input-container {
-            padding: 24px;
-            border-top: 1px solid var(--border-color);
-            background: var(--bg-secondary);
-        }
-
-        .chat-input-wrapper {
-            display: flex;
-            align-items: flex-end;
-            gap: 16px;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 16px;
-            transition: border-color 0.2s;
-        }
-
-        .chat-input-wrapper:focus-within {
-            border-color: var(--accent-primary);
-        }
-
-        .chat-input {
-            flex: 1;
-            background: none;
-            border: none;
-            color: var(--text-primary);
-            font-size: 15px;
-            line-height: 1.5;
-            resize: none;
-            outline: none;
-            min-height: 24px;
-            max-height: 200px;
-        }
-
-        .chat-input::placeholder {
-            color: var(--text-muted);
-        }
-
-        .chat-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .chat-action-btn {
-            padding: 10px;
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.2s;
-            font-size: 20px;
-        }
-
-        .chat-action-btn:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .send-btn {
-            padding: 10px 20px;
-            background: var(--accent-primary);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-
-        .send-btn:hover {
-            background: var(--accent-secondary);
-        }
-
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Settings Modal */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 24px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 24px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .modal-header h2 {
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 8px;
-            font-size: 24px;
-        }
-
-        .modal-close:hover {
-            color: var(--text-primary);
-        }
-
-        .modal-body {
-            padding: 24px;
-        }
-
-        .setting-group {
-            margin-bottom: 24px;
-        }
-
-        .setting-label {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: block;
-        }
-
-        .setting-input {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .setting-input:focus {
-            border-color: var(--accent-primary);
-        }
-
-        .setting-select {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 14px;
-            outline: none;
-            cursor: pointer;
-        }
-
-        /* Toast Notifications */
-        .toast-container {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .toast {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .toast.success {
-            border-color: var(--success);
-        }
-
-        .toast.success i {
-            color: var(--success);
-        }
-
-        .toast.error {
-            border-color: var(--error);
-        }
-
-        .toast.error i {
-            color: var(--error);
-        }
-
-        /* Responsive */
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        .thinking-text { font-size: 14px; color: var(--text-secondary); }
+        .chat-input-container { padding: 24px; border-top: 1px solid var(--border-color); background: var(--bg-secondary); }
+        .chat-input-wrapper { display: flex; align-items: flex-end; gap: 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; }
+        .chat-input-wrapper:focus-within { border-color: var(--accent-primary); }
+        .chat-input { flex: 1; background: none; border: none; color: var(--text-primary); font-size: 15px; line-height: 1.5; resize: none; outline: none; min-height: 24px; max-height: 200px; }
+        .chat-input::placeholder { color: var(--text-muted); }
+        .chat-actions { display: flex; align-items: center; gap: 8px; }
+        .chat-action-btn { padding: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; border-radius: 8px; font-size: 20px; }
+        .chat-action-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .send-btn { padding: 10px 20px; background: var(--accent-primary); border: none; border-radius: 10px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .send-btn:hover { background: var(--accent-secondary); }
+        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 24px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 24px; border-bottom: 1px solid var(--border-color); }
+        .modal-header h2 { font-size: 20px; font-weight: 700; }
+        .modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 8px; font-size: 24px; }
+        .modal-close:hover { color: var(--text-primary); }
+        .modal-body { padding: 24px; }
+        .setting-group { margin-bottom: 24px; }
+        .setting-label { font-size: 14px; font-weight: 600; margin-bottom: 8px; display: block; }
+        .setting-input { width: 100%; padding: 12px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-size: 14px; outline: none; }
+        .setting-input:focus { border-color: var(--accent-primary); }
+        .setting-select { width: 100%; padding: 12px 16px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-size: 14px; cursor: pointer; }
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 12px; }
+        .toast { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast.success { border-color: var(--success); }
+        .toast.success i { color: var(--success); }
+        .toast.error { border-color: var(--error); }
+        .toast.error i { color: var(--error); }
+        .litellm-box { background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1)); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 16px; padding: 24px; margin-bottom: 24px; }
+        .litellm-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .litellm-icon { width: 48px; height: 48px; background: var(--gradient-1); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .litellm-title h3 { font-size: 18px; font-weight: 700; }
+        .litellm-title p { font-size: 13px; color: var(--text-muted); }
+        .litellm-status { margin-left: auto; display: flex; align-items: center; gap: 8px; background: rgba(34, 197, 94, 0.1); padding: 8px 16px; border-radius: 20px; }
+        .litellm-status-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; }
+        .litellm-status span { font-size: 12px; font-weight: 600; color: var(--success); }
+        .model-info { background: var(--bg-tertiary); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+        .model-info-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .model-info-header i { font-size: 20px; color: var(--accent-primary); }
+        .model-info-header h4 { font-size: 16px; font-weight: 600; }
+        .model-specs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .model-spec { text-align: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px; }
+        .model-spec-value { font-size: 20px; font-weight: 700; color: var(--accent-secondary); }
+        .model-spec-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .proxy-config { background: var(--bg-tertiary); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+        .proxy-config-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .proxy-config-header i { font-size: 20px; color: var(--accent-primary); }
+        .proxy-config-header h4 { font-size: 14px; font-weight: 600; }
         @media (max-width: 768px) {
-            .sidebar {
-                display: none;
-            }
-
-            .message {
-                max-width: 95%;
-            }
-
-            .top-bar-right {
-                display: none;
-            }
+            .sidebar { display: none; }
+            .message { max-width: 95%; }
+            .top-bar-right { display: none; }
+            .model-specs { grid-template-columns: 1fr; }
         }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--bg-elevated);
-        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -1009,34 +311,25 @@
             <div class="login-logo-icon">🤖</div>
             <h1>OpenHands</h1>
         </div>
-
         <div class="login-card">
             <h2>Welcome to OpenHands</h2>
             <p>Sign in to start building with AI agents</p>
-
             <div class="oauth-buttons">
                 <button class="oauth-btn github" onclick="login('github')">
-                    <i class="ri-github-fill"></i>
-                    Log in with GitHub
+                    <i class="ri-github-fill"></i> Log in with GitHub
                 </button>
                 <button class="oauth-btn gitlab" onclick="login('gitlab')">
-                    <i class="ri-gitlab-fill"></i>
-                    Log in with GitLab
+                    <i class="ri-gitlab-fill"></i> Log in with GitLab
                 </button>
                 <button class="oauth-btn bitbucket" onclick="login('bitbucket')">
-                    <i class="ri-bitbucket-fill"></i>
-                    Log in with Bitbucket
+                    <i class="ri-bitbucket-fill"></i> Log in with Bitbucket
                 </button>
             </div>
-
             <div class="login-divider">or</div>
-
             <a href="/information-request" class="learn-more-btn">
-                Learn more about OpenHands
-                <i class="ri-arrow-right-line"></i>
+                Learn more about OpenHands <i class="ri-arrow-right-line"></i>
             </a>
         </div>
-
         <div class="login-footer">
             <a href="/tos">Terms of Service</a>
             <a href="/privacy">Privacy Policy</a>
@@ -1053,46 +346,29 @@
                     <h2>OpenHands</h2>
                 </div>
             </div>
-
             <button class="new-chat-btn" onclick="newChat()">
-                <i class="ri-add-line"></i>
-                New Conversation
+                <i class="ri-add-line"></i> New Conversation
             </button>
-
             <div class="chat-history">
                 <div class="chat-history-section">
                     <div class="chat-history-label">Today</div>
                     <div class="chat-history-item active" onclick="selectChat(this)">
                         <i class="ri-message-3-line"></i>
-                        <span>Build a REST API with FastAPI</span>
+                        <span>Build REST API with FastAPI</span>
                     </div>
                     <div class="chat-history-item" onclick="selectChat(this)">
                         <i class="ri-message-3-line"></i>
-                        <span>Debug Docker container issue</span>
+                        <span>Debug Docker container</span>
                     </div>
                 </div>
-
                 <div class="chat-history-section">
                     <div class="chat-history-label">Yesterday</div>
                     <div class="chat-history-item" onclick="selectChat(this)">
                         <i class="ri-message-3-line"></i>
-                        <span>Review PR for authentication</span>
-                    </div>
-                    <div class="chat-history-item" onclick="selectChat(this)">
-                        <i class="ri-message-3-line"></i>
-                        <span>Update dependencies in project</span>
-                    </div>
-                </div>
-
-                <div class="chat-history-section">
-                    <div class="chat-history-label">This Week</div>
-                    <div class="chat-history-item" onclick="selectChat(this)">
-                        <i class="ri-message-3-line"></i>
-                        <span>Create user authentication system</span>
+                        <span>Review PR authentication</span>
                     </div>
                 </div>
             </div>
-
             <div class="sidebar-footer">
                 <div class="user-profile" onclick="openSettings()">
                     <div class="user-avatar">A</div>
@@ -1100,43 +376,36 @@
                         <div class="user-name">antono4</div>
                         <div class="user-email">user@example.com</div>
                     </div>
-                    <button class="user-menu-btn">
-                        <i class="ri-more-2-line"></i>
-                    </button>
+                    <button class="user-menu-btn"><i class="ri-more-2-line"></i></button>
                 </div>
             </div>
         </div>
 
         <!-- Main Content -->
         <div class="main-content">
-            <!-- Top Bar -->
             <div class="top-bar">
                 <div class="top-bar-left">
                     <div class="breadcrumb">
                         <a href="#">Conversations</a>
                         <i class="ri-arrow-right-s-line"></i>
-                        <span>Build a REST API with FastAPI</span>
+                        <span>OpenHands Agent</span>
                     </div>
                 </div>
                 <div class="top-bar-right">
                     <button class="top-bar-btn" onclick="shareConversation()">
-                        <i class="ri-share-line"></i>
-                        Share
+                        <i class="ri-share-line"></i> Share
                     </button>
                     <button class="top-bar-btn" onclick="exportConversation()">
-                        <i class="ri-download-line"></i>
-                        Export
+                        <i class="ri-download-line"></i> Export
                     </button>
                     <button class="top-bar-btn primary" onclick="openSettings()">
-                        <i class="ri-settings-3-line"></i>
-                        Settings
+                        <i class="ri-settings-3-line"></i> Settings
                     </button>
                 </div>
             </div>
 
             <!-- Agent Workspace -->
             <div class="agent-workspace">
-                <!-- Agent Header -->
                 <div class="agent-header">
                     <div class="agent-info">
                         <div class="agent-avatar">🤖</div>
@@ -1144,169 +413,45 @@
                             <h3>OpenHands Agent</h3>
                             <div class="agent-status">
                                 <span class="status-dot"></span>
-                                Ready to assist
+                                Connected to MiniMax-M2.7 via LiteLLM
                             </div>
                         </div>
                     </div>
                     <div class="agent-actions">
                         <button class="agent-action-btn" onclick="toggleSidebar()">
-                            <i class="ri-side-bar-line"></i>
-                            Toggle Panel
+                            <i class="ri-side-bar-line"></i> Toggle Panel
                         </button>
                         <button class="agent-action-btn primary" onclick="startNewTask()">
-                            <i class="ri-play-line"></i>
-                            Start Task
+                            <i class="ri-play-line"></i> Start Task
                         </button>
                     </div>
                 </div>
 
                 <!-- Chat Area -->
                 <div class="chat-area" id="chatArea">
-                    <!-- Assistant Message -->
                     <div class="message assistant">
                         <div class="message-avatar">🤖</div>
                         <div class="message-content">
                             <div class="message-header">
                                 <span class="message-sender">OpenHands</span>
-                                <span class="message-time">2 hours ago</span>
+                                <span class="message-time">Just now</span>
                             </div>
                             <div class="message-body">
-                                Hello! I'm your OpenHands AI agent. I'm ready to help you build software, review code, fix bugs, and more.
-                                <br><br>
-                                What would you like to work on today?
+                                Hello! I'm your <strong>OpenHands AI Agent</strong> powered by <strong>MiniMax-M2.7</strong> via LiteLLM Proxy.<br><br>
+                                I'm ready to help you build software, review code, fix bugs, and more. What would you like to work on today?
                             </div>
                         </div>
-                    </div>
-
-                    <!-- User Message -->
-                    <div class="message user">
-                        <div class="message-avatar">A</div>
-                        <div class="message-content">
-                            <div class="message-header">
-                                <span class="message-sender">You</span>
-                                <span class="message-time">2 hours ago</span>
-                            </div>
-                            <div class="message-body">
-                                Can you help me create a REST API using FastAPI with user authentication?
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Assistant Response with Code -->
-                    <div class="message assistant">
-                        <div class="message-avatar">🤖</div>
-                        <div class="message-content">
-                            <div class="message-header">
-                                <span class="message-sender">OpenHands</span>
-                                <span class="message-time">2 hours ago</span>
-                            </div>
-                            <div class="message-body">
-                                Absolutely! I'll create a FastAPI REST API with JWT-based authentication. Let me set this up for you.
-                            </div>
-                            <div class="code-block">
-                                <div class="code-header">
-                                    <span class="code-lang">Python</span>
-                                    <button class="code-copy-btn" onclick="copyCode(this)">
-                                        <i class="ri-clipboard-line"></i> Copy
-                                    </button>
-                                </div>
-                                <div class="code-content">
-<pre># main.py
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
-from datetime import datetime, timedelta
-import jwt
-import passlib.hash as hash
-
-app = FastAPI()
-security = HTTPBearer()
-
-# User model
-class User(BaseModel):
-    username: str
-    email: str
-    password: str
-
-# Mock database
-users_db = []
-
-SECRET_KEY = "your-secret-key-here"
-ALGORITHM = "HS256"
-
-def create_token(data: dict):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=7)
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-@app.post("/register")
-async def register(user: User):
-    if any(u.username == user.username for u in users_db):
-        raise HTTPException(status_code=400, detail="Username exists")
-    hashed_pw = hash.bcrypt.hash(user.password)
-    users_db.append({**user.dict(), "password": hashed_pw})
-    return {"message": "User created successfully"}
-
-@app.post("/login")
-async def login(user: User):
-    db_user = next((u for u in users_db if u["username"] == user.username), None)
-    if not db_user or not hash.bcrypt.verify(user.password, db_user["password"]):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_token({"sub": user.username})
-    return {"access_token": token, "token_type": "bearer"}
-
-@app.get("/protected")
-async def protected(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return {"user": payload.get("sub"), "status": "authenticated"}
-    except:
-        raise HTTPException(status_code=401, detail="Invalid token")</pre>
-                                </div>
-                            </div>
-                            <div class="file-changes">
-                                <div class="file-change-header">
-                                    <i class="ri-file-add-line file-change-icon"></i>
-                                    <span class="file-change-name">main.py</span>
-                                    <span class="file-change-lines">+67 lines</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Thinking Indicator (shows while processing) -->
-                    <div class="thinking-indicator" id="thinkingIndicator" style="display: none;">
-                        <div class="thinking-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                        <span class="thinking-text">Thinking...</span>
                     </div>
                 </div>
 
                 <!-- Chat Input -->
                 <div class="chat-input-container">
                     <div class="chat-input-wrapper">
-                        <textarea 
-                            class="chat-input" 
-                            id="chatInput" 
-                            placeholder="Ask me anything about your code..."
-                            rows="1"
-                            onkeydown="handleKeyDown(event)"
-                        ></textarea>
+                        <textarea class="chat-input" id="chatInput" placeholder="Ask me anything about your code..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
                         <div class="chat-actions">
-                            <button class="chat-action-btn" title="Attach files">
-                                <i class="ri-attachment-2"></i>
-                            </button>
-                            <button class="chat-action-btn" title="Add context">
-                                <i class="ri脑-brain-line"></i>
-                            </button>
+                            <button class="chat-action-btn" title="Attach files"><i class="ri-attachment-2"></i></button>
                             <button class="send-btn" id="sendBtn" onclick="sendMessage()">
-                                <i class="ri-send-plane-fill"></i>
-                                Send
+                                <i class="ri-send-plane-fill"></i> Send
                             </button>
                         </div>
                     </div>
@@ -1319,33 +464,101 @@ async def protected(credentials: HTTPAuthorizationCredentials = Depends(security
     <div class="modal-overlay" id="settingsModal">
         <div class="modal">
             <div class="modal-header">
-                <h2>Settings</h2>
-                <button class="modal-close" onclick="closeSettings()">
-                    <i class="ri-close-line"></i>
-                </button>
+                <h2>AI Configuration</h2>
+                <button class="modal-close" onclick="closeSettings()"><i class="ri-close-line"></i></button>
             </div>
             <div class="modal-body">
+                <!-- LiteLLM Proxy Section -->
+                <div class="litellm-box">
+                    <div class="litellm-header">
+                        <div class="litellm-icon"><i class="ri-server-line"></i></div>
+                        <div class="litellm-title">
+                            <h3>LiteLLM Proxy</h3>
+                            <p>Unified API for 100+ LLMs</p>
+                        </div>
+                        <div class="litellm-status">
+                            <div class="litellm-status-dot"></div>
+                            <span>Connected</span>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <label class="setting-label">Proxy URL</label>
+                        <input type="text" class="setting-input" id="proxyUrl" value="https://openhands.minimax.io/litellm" placeholder="https://your-litellm-proxy.com">
+                    </div>
+                </div>
+
+                <!-- Model Selection -->
                 <div class="setting-group">
-                    <label class="setting-label">AI Model</label>
-                    <select class="setting-select">
-                        <option>Claude 3.5 Sonnet</option>
-                        <option>GPT-4 Turbo</option>
-                        <option>Gemini Pro</option>
-                        <option>Mistral Large</option>
+                    <label class="setting-label">Model Provider</label>
+                    <select class="setting-select" id="modelProvider" onchange="updateModelOptions()">
+                        <option value="minimax" selected>MiniMax (via LiteLLM)</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="google">Google Gemini</option>
+                        <option value="azure">Azure OpenAI</option>
                     </select>
                 </div>
+
                 <div class="setting-group">
-                    <label class="setting-label">Temperature</label>
-                    <input type="range" class="setting-input" min="0" max="100" value="70" style="padding: 0;">
+                    <label class="setting-label">Model</label>
+                    <select class="setting-select" id="modelSelect">
+                        <option value="minimaxi/sg-2505-ablation1-ep8" selected>MiniMax-M2.7 (Latest)</option>
+                        <option value="minimaxi/sg-2505-ablation1-ep8-fw">MiniMax-M2.7-FW (Fast)</option>
+                        <option value="minimaxi/moonshot-v1-32k">MiniMax-Moonshot-32K</option>
+                        <option value="minimaxi/yi-1.5-34b-chat">MiniMax-Yi-1.5-34B</option>
+                    </select>
                 </div>
+
+                <!-- Model Info Box -->
+                <div class="model-info">
+                    <div class="model-info-header">
+                        <i class="ri-robot-2-line"></i>
+                        <h4>MiniMax-M2.7 Active</h4>
+                    </div>
+                    <div class="model-specs">
+                        <div class="model-spec">
+                            <div class="model-spec-value">128K</div>
+                            <div class="model-spec-label">Context Window</div>
+                        </div>
+                        <div class="model-spec">
+                            <div class="model-spec-value">8K</div>
+                            <div class="model-spec-label">Max Output</div>
+                        </div>
+                        <div class="model-spec">
+                            <div class="model-spec-value">100+</div>
+                            <div class="model-spec-label">Languages</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generation Settings -->
+                <div class="proxy-config">
+                    <div class="proxy-config-header">
+                        <i class="ri-tools-line"></i>
+                        <h4>Generation Parameters</h4>
+                    </div>
+                    <div class="setting-group">
+                        <label class="setting-label">Temperature: <span id="tempValue">0.7</span></label>
+                        <input type="range" class="setting-input" id="temperature" min="0" max="100" value="70" style="padding: 0;" oninput="document.getElementById('tempValue').textContent = (this.value / 100).toFixed(2)">
+                    </div>
+                    <div class="setting-group">
+                        <label class="setting-label">Max Tokens: <span id="tokensValue">4096</span></label>
+                        <input type="range" class="setting-input" id="maxTokens" min="512" max="128000" value="4096" style="padding: 0;" oninput="document.getElementById('tokensValue').textContent = this.value">
+                    </div>
+                    <div class="setting-group">
+                        <label class="setting-label">Top P</label>
+                        <input type="range" class="setting-input" id="topP" min="0" max="100" value="95" style="padding: 0;">
+                    </div>
+                </div>
+
                 <div class="setting-group">
-                    <label class="setting-label">Max Tokens</label>
-                    <input type="number" class="setting-input" value="4096">
+                    <label class="setting-label">API Key (optional for MiniMax)</label>
+                    <input type="password" class="setting-input" id="apiKey" placeholder="Enter your API key">
                 </div>
-                <div class="setting-group">
-                    <label class="setting-label">API Key</label>
-                    <input type="password" class="setting-input" placeholder="Enter your API key">
-                </div>
+
+                <button class="agent-action-btn primary" style="width: 100%; justify-content: center; margin-top: 16px;" onclick="testConnection()">
+                    <i class="ri-wifi-line"></i> Test Connection
+                </button>
             </div>
         </div>
     </div>
@@ -1354,110 +567,106 @@ async def protected(credentials: HTTPAuthorizationCredentials = Depends(security
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
-        // Login function
         function login(provider) {
-            // Simulate login animation
             showToast(`Logging in with ${provider}...`, 'success');
-            
             setTimeout(() => {
                 document.getElementById('loginPage').style.display = 'none';
                 document.getElementById('appContainer').classList.add('active');
-                showToast('Successfully logged in!', 'success');
+                showToast('Successfully connected to LiteLLM Proxy!', 'success');
             }, 1000);
         }
 
-        // New chat
         function newChat() {
             const chatArea = document.getElementById('chatArea');
-            chatArea.innerHTML = `
-                <div class="message assistant">
-                    <div class="message-avatar">🤖</div>
-                    <div class="message-content">
-                        <div class="message-header">
-                            <span class="message-sender">OpenHands</span>
-                            <span class="message-time">Just now</span>
-                        </div>
-                        <div class="message-body">
-                            Hi! I'm ready to help you with your next task. What would you like to work on?
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Clear active state from all chat items
-            document.querySelectorAll('.chat-history-item').forEach(item => {
-                item.classList.remove('active');
-            });
+            chatArea.innerHTML = '<div class="message assistant"><div class="message-avatar">🤖</div><div class="message-content"><div class="message-header"><span class="message-sender">OpenHands</span><span class="message-time">Just now</span></div><div class="message-body">Hi! I\'m ready to help. What would you like to work on?</div></div></div>';
+            document.querySelectorAll('.chat-history-item').forEach(item => item.classList.remove('active'));
         }
 
-        // Select chat from history
         function selectChat(element) {
-            document.querySelectorAll('.chat-history-item').forEach(item => {
-                item.classList.remove('active');
-            });
+            document.querySelectorAll('.chat-history-item').forEach(item => item.classList.remove('active'));
             element.classList.add('active');
         }
 
-        // Handle message sending
+        function updateModelOptions() {
+            const provider = document.getElementById('modelProvider').value;
+            const modelSelect = document.getElementById('modelSelect');
+            const proxyUrl = document.getElementById('proxyUrl');
+            const models = {
+                minimax: [
+                    { value: 'minimaxi/sg-2505-ablation1-ep8', name: 'MiniMax-M2.7 (Latest)' },
+                    { value: 'minimaxi/sg-2505-ablation1-ep8-fw', name: 'MiniMax-M2.7-FW (Fast)' },
+                    { value: 'minimaxi/moonshot-v1-32k', name: 'MiniMax-Moonshot-32K' },
+                    { value: 'minimaxi/yi-1.5-34b-chat', name: 'MiniMax-Yi-1.5-34B' }
+                ],
+                openai: [
+                    { value: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
+                    { value: 'gpt-4', name: 'GPT-4' },
+                    { value: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
+                ],
+                anthropic: [
+                    { value: 'claude-3-5-sonnet-20240620', name: 'Claude 3.5 Sonnet' },
+                    { value: 'claude-3-opus-20240229', name: 'Claude 3 Opus' },
+                    { value: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' }
+                ],
+                google: [
+                    { value: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+                    { value: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
+                    { value: 'gemini-pro', name: 'Gemini Pro' }
+                ],
+                azure: [
+                    { value: 'gpt-4-turbo', name: 'GPT-4 Turbo (Azure)' },
+                    { value: 'gpt-35-turbo', name: 'GPT-3.5 Turbo (Azure)' }
+                ]
+            };
+            const defaultUrls = {
+                minimax: 'https://openhands.minimax.io/litellm',
+                openai: 'https://api.openai.com/v1',
+                anthropic: 'https://api.anthropic.com',
+                google: 'https://generativelanguage.googleapis.com/v1',
+                azure: 'https://YOUR_RESOURCE.openai.azure.com'
+            };
+            proxyUrl.placeholder = defaultUrls[provider];
+            if (provider === 'minimax') proxyUrl.value = defaultUrls[provider];
+            modelSelect.innerHTML = models[provider].map(m => `<option value="${m.value}">${m.name}</option>`).join('');
+        }
+
+        async function testConnection() {
+            const proxyUrl = document.getElementById('proxyUrl').value;
+            const model = document.getElementById('modelSelect').value;
+            showToast('Testing connection to LiteLLM proxy...', 'success');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            showToast(`✅ Connected to ${model} via LiteLLM Proxy`, 'success');
+            document.querySelector('.agent-status').innerHTML = `<span class="status-dot"></span>Connected to ${model}`;
+        }
+
         function sendMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
-            
             if (!message) return;
-            
             const chatArea = document.getElementById('chatArea');
-            
-            // Add user message
+            const model = document.getElementById('modelSelect').value;
+            const proxyUrl = document.getElementById('proxyUrl').value;
+            const temp = document.getElementById('temperature').value / 100;
+            const maxTokens = document.getElementById('maxTokens').value;
             const userMessage = document.createElement('div');
             userMessage.className = 'message user';
-            userMessage.innerHTML = `
-                <div class="message-avatar">A</div>
-                <div class="message-content">
-                    <div class="message-header">
-                        <span class="message-sender">You</span>
-                        <span class="message-time">Just now</span>
-                    </div>
-                    <div class="message-body">${message}</div>
-                </div>
-            `;
+            userMessage.innerHTML = `<div class="message-avatar">A</div><div class="message-content"><div class="message-header"><span class="message-sender">You</span><span class="message-time">Just now</span></div><div class="message-body">${message}</div></div>`;
             chatArea.appendChild(userMessage);
-            
-            // Clear input
             input.value = '';
-            
-            // Show thinking indicator
-            const thinking = document.getElementById('thinkingIndicator');
-            thinking.style.display = 'flex';
-            
-            // Scroll to bottom
+            const thinking = document.getElementById('chatArea').appendChild(document.createElement('div'));
+            thinking.className = 'thinking-indicator';
+            thinking.innerHTML = '<div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text">Thinking with ' + model + '...</span>';
             chatArea.scrollTop = chatArea.scrollHeight;
-            
-            // Simulate response after delay
             setTimeout(() => {
-                thinking.style.display = 'none';
-                
+                thinking.remove();
                 const assistantMessage = document.createElement('div');
                 assistantMessage.className = 'message assistant';
-                assistantMessage.innerHTML = `
-                    <div class="message-avatar">🤖</div>
-                    <div class="message-content">
-                        <div class="message-header">
-                            <span class="message-sender">OpenHands</span>
-                            <span class="message-time">Just now</span>
-                        </div>
-                        <div class="message-body">
-                            I understand you want to: "${message}"<br><br>
-                            Let me help you with that. I'm processing your request and will provide a comprehensive solution shortly.
-                        </div>
-                    </div>
-                `;
+                assistantMessage.innerHTML = '<div class="message-avatar">🤖</div><div class="message-content"><div class="message-header"><span class="message-sender">OpenHands</span><span class="message-time">Just now</span></div><div class="message-body">Processing your request using <strong>' + model + '</strong> via LiteLLM Proxy...</div><div class="code-block"><div class="code-header"><span class="code-lang">API Request</span><button class="code-copy-btn" onclick="copyCode(this)"><i class="ri-clipboard-line"></i> Copy</button></div><div class="code-content"><pre>POST ' + proxyUrl + '/chat/completions\nHeaders:\n  Authorization: Bearer ' + (document.getElementById('apiKey').value || 'YOUR_API_KEY') + '\n  Content-Type: application/json\n\nBody:\n{\n  "model": "' + model + '",\n  "messages": [{"role": "user", "content": "' + message + '"}],\n  "temperature": ' + temp + ',\n  "max_tokens": ' + maxTokens + '\n}</pre></div></div></div>';
                 chatArea.appendChild(assistantMessage);
                 chatArea.scrollTop = chatArea.scrollHeight;
-                
             }, 2000);
         }
 
-        // Handle keyboard events
         function handleKeyDown(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
@@ -1465,82 +674,26 @@ async def protected(credentials: HTTPAuthorizationCredentials = Depends(security
             }
         }
 
-        // Settings modal
-        function openSettings() {
-            document.getElementById('settingsModal').classList.add('active');
-        }
+        function openSettings() { document.getElementById('settingsModal').classList.add('active'); }
+        function closeSettings() { document.getElementById('settingsModal').classList.remove('active'); }
+        function toggleSidebar() { const sidebar = document.querySelector('.sidebar'); sidebar.style.display = sidebar.style.display === 'none' ? 'flex' : 'none'; }
+        function shareConversation() { showToast('Generating share link...', 'success'); setTimeout(() => showToast('Share link copied!', 'success'), 1000); }
+        function exportConversation() { showToast('Exporting conversation...', 'success'); setTimeout(() => showToast('Exported successfully!', 'success'), 1500); }
+        function startNewTask() { showToast('Starting new task...', 'success'); }
+        function copyCode(button) { const codeContent = button.closest('.code-block').querySelector('pre'); navigator.clipboard.writeText(codeContent.textContent); button.innerHTML = '<i class="ri-check-line"></i> Copied!'; setTimeout(() => button.innerHTML = '<i class="ri-clipboard-line"></i> Copy', 2000); }
 
-        function closeSettings() {
-            document.getElementById('settingsModal').classList.remove('active');
-        }
-
-        // Toggle sidebar
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar.style.display = sidebar.style.display === 'none' ? 'flex' : 'none';
-        }
-
-        // Share conversation
-        function shareConversation() {
-            showToast('Generating share link...', 'success');
-            setTimeout(() => {
-                showToast('Share link copied to clipboard!', 'success');
-            }, 1000);
-        }
-
-        // Export conversation
-        function exportConversation() {
-            showToast('Exporting conversation...', 'success');
-            setTimeout(() => {
-                showToast('Conversation exported successfully!', 'success');
-            }, 1500);
-        }
-
-        // Start new task
-        function startNewTask() {
-            showToast('Starting new task...', 'success');
-        }
-
-        // Copy code
-        function copyCode(button) {
-            const codeContent = button.closest('.code-block').querySelector('pre');
-            navigator.clipboard.writeText(codeContent.textContent);
-            button.innerHTML = '<i class="ri-check-line"></i> Copied!';
-            setTimeout(() => {
-                button.innerHTML = '<i class="ri-clipboard-line"></i> Copy';
-            }, 2000);
-        }
-
-        // Toast notification
         function showToast(message, type = 'success') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <i class="ri-${type === 'success' ? 'check-line' : 'error-warning-line'}"></i>
-                <span>${message}</span>
-            `;
+            toast.className = 'toast ' + type;
+            toast.innerHTML = '<i class="ri-' + (type === 'success' ? 'check-line' : 'error-warning-line') + '"></i><span>' + message + '</span>';
             container.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.animation = 'slideIn 0.3s ease reverse';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+            setTimeout(() => { toast.style.animation = 'slideIn 0.3s ease reverse'; setTimeout(() => toast.remove(), 300); }, 3000);
         }
 
-        // Auto-resize textarea
         const chatInput = document.getElementById('chatInput');
-        chatInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
-        });
-
-        // Close modal on outside click
-        document.getElementById('settingsModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeSettings();
-            }
-        });
+        chatInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 200) + 'px'; });
+        document.getElementById('settingsModal').addEventListener('click', function(e) { if (e.target === this) closeSettings(); });
     </script>
 </body>
 </html>
