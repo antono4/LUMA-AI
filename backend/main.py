@@ -67,7 +67,7 @@ class Message(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-class Conversation(BaseModel):
+class ConversationResponse(BaseModel):
     id: str
     title: str
     created_at: datetime
@@ -100,7 +100,7 @@ def get_llm() -> LLM:
     """Initialize LLM with environment variables"""
     return LLM(
         model=os.getenv("LLM_MODEL", "gpt-4o"),
-        api_key=os.getenv("OPENAI_API_KEY"),
+        api_key=os.getenv("OPENAI_API_KEY") or os.getenv("SESSION_API_KEY", ""),
         base_url=os.getenv("LLM_BASE_URL"),
     )
 
@@ -154,7 +154,7 @@ async def health_check():
 
 
 # Conversation Routes
-@app.post("/api/conversations", response_model=Conversation)
+@app.post("/api/conversations", response_model=ConversationResponse)
 async def create_conversation(conversation_data: ConversationCreate, db: Session = Depends(get_db)):
     """Create a new conversation"""
     conv_id = str(uuid.uuid4())
@@ -185,7 +185,7 @@ async def create_conversation(conversation_data: ConversationCreate, db: Session
         "workspace_path": workspace_path,
     }
     
-    return Conversation(
+    return ConversationResponse(
         id=conv_id,
         title=title,
         created_at=db_conv.created_at,
@@ -195,7 +195,7 @@ async def create_conversation(conversation_data: ConversationCreate, db: Session
     )
 
 
-@app.get("/api/conversations", response_model=List[Conversation])
+@app.get("/api/conversations", response_model=List[ConversationResponse])
 async def list_conversations(
     skip: int = 0,
     limit: int = 50,
@@ -207,7 +207,7 @@ async def list_conversations(
     ).offset(skip).limit(limit).all()
     
     return [
-        Conversation(
+        ConversationResponse(
             id=c.id,
             title=c.title,
             created_at=c.created_at,
@@ -219,7 +219,7 @@ async def list_conversations(
     ]
 
 
-@app.get("/api/conversations/{conversation_id}", response_model=Conversation)
+@app.get("/api/conversations/{conversation_id}", response_model=ConversationResponse)
 async def get_conversation(conversation_id: str, db: Session = Depends(get_db)):
     """Get a specific conversation with messages"""
     db_conv = db.query(ConversationDB).filter(ConversationDB.id == conversation_id).first()
@@ -230,7 +230,7 @@ async def get_conversation(conversation_id: str, db: Session = Depends(get_db)):
         MessageDB.conversation_id == conversation_id
     ).order_by(MessageDB.created_at).all()
     
-    return Conversation(
+    return ConversationResponse(
         id=db_conv.id,
         title=db_conv.title,
         created_at=db_conv.created_at,
