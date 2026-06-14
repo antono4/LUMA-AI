@@ -88,7 +88,7 @@ export function ChatWindow({
         {messages.length === 0 && !streamingContent && (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
             <div className="text-center">
-              <h2 className="text-2xl font-bold mb-2">Welcome to OpenHands AI</h2>
+              <h2 className="text-2xl font-bold mb-2">Welcome to LUMA-AI</h2>
               <p className="text-sm max-w-md">
                 I can help you with coding tasks, file management, terminal commands,
                 and more. Just describe what you need!

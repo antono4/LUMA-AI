@@ -1,5 +1,5 @@
 """
-OpenHands-like AI Assistant Backend
+LUMA-AI Backend
 FastAPI server with OpenHands SDK integration
 """
 
@@ -84,7 +84,7 @@ class MessageCreate(BaseModel):
     content: str
 
 
-# In-memory conversation state (using OpenHands SDK)
+# In-memory conversation state
 active_conversations: Dict[str, Dict[str, Any]] = {}
 
 
@@ -119,15 +119,15 @@ def get_agent(llm: LLM) -> Agent:
 # Lifespan for startup/shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Starting OpenHands-like AI Assistant...")
+    print("🚀 Starting LUMA-AI...")
     yield
     print("👋 Shutting down...")
 
 
 # FastAPI App
 app = FastAPI(
-    title="OpenHands-like AI Assistant",
-    description="AI-powered development assistant similar to OpenHands Cloud",
+    title="LUMA-AI",
+    description="AI-powered development assistant",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -145,7 +145,7 @@ app.add_middleware(
 # Routes
 @app.get("/")
 async def root():
-    return {"message": "OpenHands-like AI Assistant API", "version": "1.0.0"}
+    return {"message": "LUMA-AI API", "version": "1.0.0"}
 
 
 @app.get("/health")
@@ -170,7 +170,7 @@ async def create_conversation(conversation_data: ConversationCreate, db: Session
     db.commit()
     db.refresh(db_conv)
     
-    # Initialize OpenHands conversation
+    # Initialize LUMA-AI conversation
     workspace_path = f"./workspaces/{conv_id}"
     os.makedirs(workspace_path, exist_ok=True)
     

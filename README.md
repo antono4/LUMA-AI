@@ -1,6 +1,6 @@
-# OpenHands-like AI Assistant
+# LUMA-AI
 
-A web application similar to OpenHands Cloud that provides AI-powered development assistance.
+A web application that provides AI-powered development assistance.
 
 ## Features
 
@@ -8,15 +8,13 @@ A web application similar to OpenHands Cloud that provides AI-powered developmen
 - 🛠️ Code editing and file management tools
 - 🔧 Terminal command execution
 - 📁 Project workspace management
-- 🔐 GitHub/GitLab authentication
 - 📊 Conversation history
 
 ## Tech Stack
 
 - **Backend**: FastAPI + OpenHands SDK
 - **Frontend**: React + TypeScript + TailwindCSS
-- **Database**: SQLite (for development)
-- **Authentication**: OAuth (GitHub, GitLab, Bitbucket)
+- **Database**: SQLite
 
 ## Quick Start
 

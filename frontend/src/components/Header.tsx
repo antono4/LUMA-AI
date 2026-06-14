@@ -22,7 +22,7 @@ export function Header({ title, status, onToggleSidebar }: HeaderProps) {
         
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">OH</span>
+            <span className="text-white font-bold text-sm">LU</span>
           </div>
           <div>
             <h1 className="text-white font-semibold text-sm">{title}</h1>
@@ -44,7 +44,7 @@ export function Header({ title, status, onToggleSidebar }: HeaderProps) {
 
       <div className="flex items-center gap-2">
         <a
-          href="https://github.com/OpenHands/OpenHands"
+          href="https://github.com/antono4/LUMA-AI"
           target="_blank"
           rel="noopener noreferrer"
           className="p-2 hover:bg-dark-100 rounded-lg transition-colors text-gray-400 hover:text-white"
