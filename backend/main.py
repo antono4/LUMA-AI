@@ -113,7 +113,6 @@ def get_agent(llm: LLM) -> Agent:
     """Create agent with default tools"""
     return Agent(
         llm=llm,
-        include_default_tools=['BrowseInteractive', 'FileEditor', 'Terminal'],
     )
 
 
