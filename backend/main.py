@@ -9,7 +9,7 @@ import asyncio
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
-
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -20,10 +20,11 @@ from sqlalchemy.orm import sessionmaker, Session
 from sse_starlette.sse import EventSourceResponse
 
 # OpenHands SDK imports
-from openhands.sdk import LLM, Agent, Conversation
-from openhands.sdk.tool import Tool
-from openhands.tools.file_editor import FileEditorTool
-from openhands.tools.terminal import TerminalTool
+from openhands.sdk import LLM, Agent
+from openhands.sdk.conversation import Conversation as OHConversation
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Database setup
 SQLALCHEMY_DATABASE_URL = "sqlite:///./conversations.db"
@@ -59,7 +60,7 @@ Base.metadata.create_all(bind=engine)
 
 
 # Pydantic Models
-class Message(BaseModel):
+class MessageModel(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     role: str
     content: str
@@ -67,13 +68,16 @@ class Message(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-class Conversation(BaseModel):
+class ConversationModel(BaseModel):
     id: str
     title: str
     created_at: datetime
     updated_at: datetime
     status: str
-    messages: List[Message] = []
+    messages: List[MessageModel] = []
+    
+    class Config:
+        from_attributes = True
 
 
 class ConversationCreate(BaseModel):
@@ -106,13 +110,10 @@ def get_llm() -> LLM:
 
 
 def get_agent(llm: LLM) -> Agent:
-    """Create agent with standard tools"""
+    """Create agent with default tools"""
     return Agent(
         llm=llm,
-        tools=[
-            Tool(name=TerminalTool.name),
-            Tool(name=FileEditorTool.name),
-        ],
+        include_default_tools=['BrowseInteractive', 'FileEditor', 'Terminal'],
     )
 
 
@@ -154,7 +155,7 @@ async def health_check():
 
 
 # Conversation Routes
-@app.post("/api/conversations", response_model=Conversation)
+@app.post("/api/conversations", response_model=ConversationModel)
 async def create_conversation(conversation_data: ConversationCreate, db: Session = Depends(get_db)):
     """Create a new conversation"""
     conv_id = str(uuid.uuid4())
@@ -176,7 +177,7 @@ async def create_conversation(conversation_data: ConversationCreate, db: Session
     
     llm = get_llm()
     agent = get_agent(llm)
-    oh_conv = Conversation(agent=agent, workspace=workspace_path)
+    oh_conv = OHConversation(agent=agent, workspace=workspace_path)
     
     active_conversations[conv_id] = {
         "llm": llm,
@@ -185,7 +186,7 @@ async def create_conversation(conversation_data: ConversationCreate, db: Session
         "workspace_path": workspace_path,
     }
     
-    return Conversation(
+    return ConversationModel(
         id=conv_id,
         title=title,
         created_at=db_conv.created_at,
@@ -195,7 +196,7 @@ async def create_conversation(conversation_data: ConversationCreate, db: Session
     )
 
 
-@app.get("/api/conversations", response_model=List[Conversation])
+@app.get("/api/conversations", response_model=List[ConversationModel])
 async def list_conversations(
     skip: int = 0,
     limit: int = 50,
@@ -207,7 +208,7 @@ async def list_conversations(
     ).offset(skip).limit(limit).all()
     
     return [
-        Conversation(
+        ConversationModel(
             id=c.id,
             title=c.title,
             created_at=c.created_at,
@@ -219,7 +220,7 @@ async def list_conversations(
     ]
 
 
-@app.get("/api/conversations/{conversation_id}", response_model=Conversation)
+@app.get("/api/conversations/{conversation_id}", response_model=ConversationModel)
 async def get_conversation(conversation_id: str, db: Session = Depends(get_db)):
     """Get a specific conversation with messages"""
     db_conv = db.query(ConversationDB).filter(ConversationDB.id == conversation_id).first()
@@ -230,14 +231,14 @@ async def get_conversation(conversation_id: str, db: Session = Depends(get_db)):
         MessageDB.conversation_id == conversation_id
     ).order_by(MessageDB.created_at).all()
     
-    return Conversation(
+    return ConversationModel(
         id=db_conv.id,
         title=db_conv.title,
         created_at=db_conv.created_at,
         updated_at=db_conv.updated_at,
         status=db_conv.status,
         messages=[
-            Message(
+            MessageModel(
                 id=m.id,
                 role=m.role,
                 content=m.content,
@@ -302,7 +303,7 @@ async def send_message(
             agent = get_agent(llm)
             workspace_path = f"./workspaces/{conversation_id}"
             os.makedirs(workspace_path, exist_ok=True)
-            oh_conv = Conversation(agent=agent, workspace=workspace_path)
+            oh_conv = OHConversation(agent=agent, workspace=workspace_path)
             active_conversations[conversation_id] = {
                 "llm": llm,
                 "agent": agent,
