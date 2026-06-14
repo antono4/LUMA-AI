@@ -39,7 +39,14 @@ export default function App() {
       }
     } catch (error) {
       console.error('Failed to initialize:', error);
-      await createNewConversation();
+      // Show welcome message with backend connection error
+      setConversations([]);
+      setMessages([{
+        id: 'welcome-error',
+        role: 'assistant',
+        content: '🔌 **Tidak dapat terhubung ke Backend Server**\n\nAplikasi membutuhkan server backend untuk berfungsi.\n\nJalankan secara lokal:\n1. cd backend\n2. pip install -r requirements.txt\n3. python main.py',
+        created_at: new Date().toISOString(),
+      }]);
     } finally {
       setIsInitialized(true);
     }
@@ -116,22 +123,27 @@ export default function App() {
         }
       });
 
-      // Add assistant message
-      if (streamingContent || messages.some(m => m.id === tempUserMsg.id)) {
-        const finalContent = streamingContent || '';
-        if (finalContent) {
-          const assistantMsg: Message = {
-            id: (Date.now() + 1).toString(),
-            role: 'assistant',
-            content: finalContent,
-            created_at: new Date().toISOString(),
-          };
-          setMessages(prev => [...prev.filter(m => m.id !== tempUserMsg.id), tempUserMsg, assistantMsg]);
-        }
+      // Add assistant message from streaming content
+      const finalContent = streamingContent;
+      if (finalContent) {
+        const assistantMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: finalContent,
+          created_at: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev.filter(m => m.id !== tempUserMsg.id), tempUserMsg, assistantMsg]);
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      setInput(userMessage);
+      // Show error message in chat
+      const errorMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `Maaf, terjadi kesalahan: ${error instanceof Error ? error.message : 'Tidak dapat terhubung ke server. Pastikan backend berjalan di port 8000.'}`,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev.filter(m => m.id !== tempUserMsg.id), tempUserMsg, errorMsg]);
     } finally {
       setStreamingContent('');
       setIsLoading(false);
