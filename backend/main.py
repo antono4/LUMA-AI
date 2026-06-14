@@ -98,10 +98,13 @@ def get_db():
 
 def get_llm() -> LLM:
     """Initialize LLM with environment variables"""
+    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("SESSION_API_KEY", "") or "sk-oh-G8iiy5E5ZSKBFKxEgDa3bDwwOsYSYyMs"
+    base_url = os.getenv("LLM_BASE_URL") or os.getenv("OPENAI_BASE_URL") or "https://openhands.minimax.io/litellm"
+    
     return LLM(
-        model=os.getenv("LLM_MODEL", "gpt-4o"),
-        api_key=os.getenv("OPENAI_API_KEY") or os.getenv("SESSION_API_KEY", ""),
-        base_url=os.getenv("LLM_BASE_URL"),
+        model=os.getenv("LLM_MODEL", "minimaxi/sg-2505-ablation1-ep8"),
+        api_key=api_key,
+        base_url=base_url,
     )
 
 
