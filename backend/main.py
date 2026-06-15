@@ -20,10 +20,8 @@ from sqlalchemy.orm import sessionmaker, Session
 from sse_starlette.sse import EventSourceResponse
 
 # OpenHands SDK imports
-from openhands.sdk import LLM, Agent, Conversation
-from openhands.sdk.tool import Tool
-from openhands.tools.file_editor import FileEditorTool
-from openhands.tools.terminal import TerminalTool
+from openhands.sdk import LLM, Agent
+from openhands.sdk.conversation.impl.local_conversation import LocalConversation
 
 # Database setup
 SQLALCHEMY_DATABASE_URL = "sqlite:///./conversations.db"
@@ -97,25 +95,60 @@ def get_db():
 
 
 def get_llm() -> LLM:
-    """Initialize LLM with environment variables"""
-    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("SESSION_API_KEY", "") or "sk-oh-G8iiy5E5ZSKBFKxEgDa3bDwwOsYSYyMs"
-    base_url = os.getenv("LLM_BASE_URL") or os.getenv("OPENAI_BASE_URL") or "https://openhands.minimax.io/litellm"
+    """Initialize LLM with environment configuration.
     
-    return LLM(
-        model=os.getenv("LLM_MODEL", "minimaxi/sg-2505-ablation1-ep8"),
+    Environment variables:
+    - LLM_API_KEY: API key for LLM provider (required)
+    - LLM_BASE_URL: Base URL for LLM API (default: https://api.openai.com/v1)
+      Examples:
+        - OpenAI: "https://api.openai.com/v1"
+        - Azure: "https://YOUR_RESOURCE.openai.azure.com/openai/deployments/YOUR_DEPLOYMENT"
+        - OpenRouter: "https://openrouter.ai/api/v1"
+        - Groq: "https://api.groq.com/openai/v1"
+        - Custom: "http://your-server:8000/v1"
+    - LLM_MODEL: Model name (default: gpt-4o)
+    
+    Alternative: Set ANTHROPIC_API_KEY, GOOGLE_API_KEY, etc. for specific providers.
+    """
+    api_key = os.getenv("LLM_API_KEY", "")
+    base_url = os.getenv("LLM_BASE_URL", "").rstrip('/') or None
+    model = os.getenv("LLM_MODEL", "gpt-4o")
+    
+    # Check for common API key environment variables
+    if not api_key:
+        for key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY"]:
+            if os.getenv(key):
+                api_key = os.getenv(key)
+                break
+    
+    if not api_key:
+        raise ValueError(
+            "No LLM API key configured. Set LLM_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY."
+        )
+    
+    # If base_url is set via OH_INTERNAL_SERVER_URL, use it directly
+    internal_url = os.getenv("OH_INTERNAL_SERVER_URL")
+    if internal_url and not base_url:
+        base_url = internal_url.rstrip('/')
+    
+    llm = LLM(
+        model=model,
         api_key=api_key,
         base_url=base_url,
     )
+    
+    return llm
 
 
 def get_agent(llm: LLM) -> Agent:
-    """Create agent with standard tools"""
+    """Create agent with default tools.
+    
+    Uses the default OpenHands tools (FinishTool, ThinkTool).
+    Additional tools can be added later via MCP or other means.
+    """
     return Agent(
         llm=llm,
-        tools=[
-            Tool(name=TerminalTool.name),
-            Tool(name=FileEditorTool.name),
-        ],
+        include_default_tools=['FinishTool', 'ThinkTool'],
     )
 
 
@@ -179,7 +212,7 @@ async def create_conversation(conversation_data: ConversationCreate, db: Session
     
     llm = get_llm()
     agent = get_agent(llm)
-    oh_conv = Conversation(agent=agent, workspace=workspace_path)
+    oh_conv = LocalConversation(agent=agent, workspace=workspace_path)
     
     active_conversations[conv_id] = {
         "llm": llm,
@@ -300,12 +333,30 @@ async def send_message(
     db.commit()
     
     async def event_generator():
+        import asyncio
+        from collections.abc import AsyncGenerator
+        
+        # Create queue for events
+        event_queue: asyncio.Queue = asyncio.Queue()
+        
+        def event_callback(event):
+            # Put event in queue for async processing
+            try:
+                event_queue.put_nowait(event)
+            except:
+                pass
+        
         if conversation_id not in active_conversations:
+            # Create LLM and agent for local execution
             llm = get_llm()
             agent = get_agent(llm)
             workspace_path = f"./workspaces/{conversation_id}"
             os.makedirs(workspace_path, exist_ok=True)
-            oh_conv = Conversation(agent=agent, workspace=workspace_path)
+            oh_conv = LocalConversation(
+                agent=agent, 
+                workspace=workspace_path,
+                callbacks=[event_callback]
+            )
             active_conversations[conversation_id] = {
                 "llm": llm,
                 "agent": agent,
@@ -315,48 +366,43 @@ async def send_message(
         
         oh_conv = active_conversations[conversation_id]["conversation"]
         
-        # Send message to OpenHands
-        oh_conv.send_message(message.content)
-        
-        # Stream responses
-        full_response = ""
         msg_id = str(uuid.uuid4())
+        full_response = ""
         
         yield {
             "event": "message_start",
             "data": f'{{"id": "{msg_id}", "role": "assistant"}}'
         }
         
-        # Run conversation and stream output
-        try:
-            for event in oh_conv.run_iter(events=['action', 'observation']):
-                event_type = event.get("type", "")
-                event_data = event.get("data", {})
-                
-                if event_type == "action":
-                    action = event_data.get("action", "")
-                    content = event_data.get("content", "")
-                    if content:
-                        full_response += f"{content}\n"
-                        yield {
-                            "event": "content",
-                            "data": f'{{"content": {repr(content)}}}'
-                        }
-                
-                elif event_type == "observation":
-                    observation = event_data.get("observation", "")
-                    content = event_data.get("content", "")
-                    if content:
-                        full_response += f"[{observation}] {content}\n"
-                        yield {
-                            "event": "content",
-                            "data": f'{{"content": "[{observation}] {content}"}}'
-                        }
-                        
-        except Exception as e:
+        # Send message
+        oh_conv.send_message(message.content)
+        
+        # Run conversation in thread pool (LocalConversation is synchronous)
+        def run_conversation():
+            oh_conv.run()
+        
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, run_conversation)
+        
+        # Get history from conversation
+        history = oh_conv.state.history if hasattr(oh_conv.state, 'history') else []
+        
+        for msg in history:
+            if hasattr(msg, 'content') and msg.role == 'assistant':
+                content = str(msg.content) if msg.content else ""
+                if content:
+                    full_response += content + "\n"
+                    yield {
+                        "event": "content",
+                        "data": f'{{"content": {repr(content)}}}'
+                    }
+        
+        # Check for errors in state
+        if oh_conv.state.execution_status.name in ['ERROR', 'STUCK']:
+            error_msg = oh_conv.state.error_message if hasattr(oh_conv.state, 'error_message') else "Execution failed"
             yield {
                 "event": "error",
-                "data": f'{{"error": "{str(e)}"}}'
+                "data": f'{{"error": "{error_msg}"}}'
             }
         
         # Save assistant message
@@ -387,7 +433,14 @@ async def stop_conversation(conversation_id: str, db: Session = Depends(get_db))
     
     if conversation_id in active_conversations:
         oh_conv = active_conversations[conversation_id]["conversation"]
-        oh_conv.stop()
+        is_remote = active_conversations[conversation_id].get("is_remote", False)
+        
+        if is_remote:
+            # For remote conversation
+            oh_conv.interrupt()
+        else:
+            # For local conversation
+            oh_conv.stop()
     
     db_conv.status = "idle"
     db.commit()
