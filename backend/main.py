@@ -1,30 +1,30 @@
 """
-OpenHands-like AI Assistant Backend
-FastAPI server with OpenHands SDK integration
+LUMA AI Assistant Backend
+FastAPI server with OpenHands Cloud API integration
 """
 
 import os
 import uuid
-import asyncio
+import json
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+import httpx
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import create_engine, Column, String, Text, DateTime, Float, Integer
+from sqlalchemy import create_engine, Column, String, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sse_starlette.sse import EventSourceResponse
 
-# OpenHands SDK imports
-from openhands.sdk import LLM, Agent
-from openhands.sdk.conversation import Conversation as OHConversation
-
 # Load environment variables from .env file
 load_dotenv()
+
+# OpenHands Cloud API Configuration
+OPENHANDS_API_BASE_URL = "https://app.all-hands.dev/api/v1"
+OPENHANDS_API_KEY = os.getenv("OPENHANDS_API_KEY", "")
 
 # Database setup
 SQLALCHEMY_DATABASE_URL = "sqlite:///./conversations.db"
@@ -38,11 +38,11 @@ class ConversationDB(Base):
     __tablename__ = "conversations"
     
     id = Column(String, primary_key=True, index=True)
+    oh_conversation_id = Column(String, nullable=True)  # OpenHands Cloud conversation ID
     title = Column(String, default="New Conversation")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     status = Column(String, default="idle")  # idle, running, paused, completed
-    workspace_path = Column(String, nullable=True)
 
 
 class MessageDB(Base):
@@ -88,7 +88,7 @@ class MessageCreate(BaseModel):
     content: str
 
 
-# In-memory conversation state (using OpenHands SDK)
+# In-memory conversation state
 active_conversations: Dict[str, Dict[str, Any]] = {}
 
 
@@ -100,34 +100,28 @@ def get_db():
         db.close()
 
 
-def get_llm() -> LLM:
-    """Initialize LLM with environment variables"""
-    return LLM(
-        model=os.getenv("LLM_MODEL", "gpt-4o"),
-        api_key=os.getenv("OPENAI_API_KEY"),
-        base_url=os.getenv("LLM_BASE_URL"),
-    )
-
-
-def get_agent(llm: LLM) -> Agent:
-    """Create agent with default tools"""
-    return Agent(
-        llm=llm,
-    )
+def get_headers() -> Dict[str, str]:
+    """Get headers with API key for OpenHands Cloud API"""
+    return {
+        "Authorization": f"Bearer {OPENHANDS_API_KEY}",
+        "Content-Type": "application/json",
+    }
 
 
 # Lifespan for startup/shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Starting OpenHands-like AI Assistant...")
+    print("🚀 Starting LUMA AI Assistant...")
+    if not OPENHANDS_API_KEY:
+        print("⚠️ WARNING: OPENHANDS_API_KEY not set. Please set it in .env file.")
     yield
     print("👋 Shutting down...")
 
 
 # FastAPI App
 app = FastAPI(
-    title="OpenHands-like AI Assistant",
-    description="AI-powered development assistant similar to OpenHands Cloud",
+    title="LUMA AI Assistant",
+    description="AI-powered development assistant powered by OpenHands Cloud",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -145,7 +139,7 @@ app.add_middleware(
 # Routes
 @app.get("/")
 async def root():
-    return {"message": "OpenHands-like AI Assistant API", "version": "1.0.0"}
+    return {"message": "LUMA AI Assistant API", "version": "1.0.0"}
 
 
 @app.get("/health")
@@ -153,7 +147,6 @@ async def health_check():
     return {"status": "healthy"}
 
 
-# Conversation Routes
 @app.post("/api/conversations", response_model=ConversationModel)
 async def create_conversation(conversation_data: ConversationCreate, db: Session = Depends(get_db)):
     """Create a new conversation"""
@@ -169,21 +162,6 @@ async def create_conversation(conversation_data: ConversationCreate, db: Session
     db.add(db_conv)
     db.commit()
     db.refresh(db_conv)
-    
-    # Initialize OpenHands conversation
-    workspace_path = f"./workspaces/{conv_id}"
-    os.makedirs(workspace_path, exist_ok=True)
-    
-    llm = get_llm()
-    agent = get_agent(llm)
-    oh_conv = OHConversation(agent=agent, workspace=workspace_path)
-    
-    active_conversations[conv_id] = {
-        "llm": llm,
-        "agent": agent,
-        "conversation": oh_conv,
-        "workspace_path": workspace_path,
-    }
     
     return ConversationModel(
         id=conv_id,
@@ -256,10 +234,6 @@ async def delete_conversation(conversation_id: str, db: Session = Depends(get_db
     if not db_conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
-    # Remove from active conversations
-    if conversation_id in active_conversations:
-        del active_conversations[conversation_id]
-    
     # Delete messages
     db.query(MessageDB).filter(MessageDB.conversation_id == conversation_id).delete()
     db.delete(db_conv)
@@ -272,10 +246,12 @@ async def delete_conversation(conversation_id: str, db: Session = Depends(get_db
 async def send_message(
     conversation_id: str,
     message: MessageCreate,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    """Send a message and get streaming response"""
+    """Send a message and get streaming response via OpenHands Cloud API"""
+    if not OPENHANDS_API_KEY:
+        raise HTTPException(status_code=500, detail="OpenHands API key not configured")
+    
     db_conv = db.query(ConversationDB).filter(ConversationDB.id == conversation_id).first()
     if not db_conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -297,63 +273,59 @@ async def send_message(
     db.commit()
     
     async def event_generator():
-        if conversation_id not in active_conversations:
-            llm = get_llm()
-            agent = get_agent(llm)
-            workspace_path = f"./workspaces/{conversation_id}"
-            os.makedirs(workspace_path, exist_ok=True)
-            oh_conv = OHConversation(agent=agent, workspace=workspace_path)
-            active_conversations[conversation_id] = {
-                "llm": llm,
-                "agent": agent,
-                "conversation": oh_conv,
-                "workspace_path": workspace_path,
-            }
-        
-        oh_conv = active_conversations[conversation_id]["conversation"]
-        
-        # Send message to OpenHands
-        oh_conv.send_message(message.content)
-        
-        # Stream responses
         full_response = ""
         msg_id = str(uuid.uuid4())
         
         yield {
             "event": "message_start",
-            "data": f'{{"id": "{msg_id}", "role": "assistant"}}'
+            "data": json.dumps({"id": msg_id, "role": "assistant"})
         }
         
-        # Run conversation and stream output
         try:
-            for event in oh_conv.run_iter(events=['action', 'observation']):
-                event_type = event.get("type", "")
-                event_data = event.get("data", {})
-                
-                if event_type == "action":
-                    action = event_data.get("action", "")
-                    content = event_data.get("content", "")
-                    if content:
-                        full_response += f"{content}\n"
-                        yield {
-                            "event": "content",
-                            "data": f'{{"content": {repr(content)}}}'
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                # Call OpenHands Cloud API - create conversation with initial message
+                response = await client.post(
+                    f"{OPENHANDS_API_BASE_URL}/app-conversations",
+                    headers=get_headers(),
+                    json={
+                        "initial_message": {
+                            "content": [{"type": "text", "text": message.content}]
                         }
+                    },
+                    timeout=300.0
+                )
                 
-                elif event_type == "observation":
-                    observation = event_data.get("observation", "")
-                    content = event_data.get("content", "")
-                    if content:
-                        full_response += f"[{observation}] {content}\n"
-                        yield {
-                            "event": "content",
-                            "data": f'{{"content": "[{observation}] {content}"}}'
-                        }
-                        
+                if response.status_code in (200, 201):
+                    response_data = response.json()
+                    # Extract response from OpenHands API
+                    full_response = response_data.get("response", "")
+                    if not full_response:
+                        full_response = "Conversation started. Check OpenHands dashboard for details."
+                    
+                    # Store the OpenHands conversation ID
+                    oh_conv_id = response_data.get("app_conversation_id") or response_data.get("id")
+                    if oh_conv_id and not db_conv.oh_conversation_id:
+                        db_conv.oh_conversation_id = oh_conv_id
+                        db.commit()
+                    
+                    # Stream the response content
+                    yield {
+                        "event": "content",
+                        "data": json.dumps({"content": full_response})
+                    }
+                else:
+                    error_msg = f"OpenHands API error: {response.status_code} - {response.text}"
+                    yield {
+                        "event": "error",
+                        "data": json.dumps({"error": error_msg})
+                    }
+                    full_response = error_msg
+                    
         except Exception as e:
+            full_response = f"Error: {str(e)}"
             yield {
                 "event": "error",
-                "data": f'{{"error": "{str(e)}"}}'
+                "data": json.dumps({"error": full_response})
             }
         
         # Save assistant message
@@ -369,7 +341,7 @@ async def send_message(
         
         yield {
             "event": "message_end",
-            "data": f'{{"id": "{msg_id}"}}'
+            "data": json.dumps({"id": msg_id})
         }
     
     return EventSourceResponse(event_generator())
@@ -381,10 +353,6 @@ async def stop_conversation(conversation_id: str, db: Session = Depends(get_db))
     db_conv = db.query(ConversationDB).filter(ConversationDB.id == conversation_id).first()
     if not db_conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    if conversation_id in active_conversations:
-        oh_conv = active_conversations[conversation_id]["conversation"]
-        oh_conv.stop()
     
     db_conv.status = "idle"
     db.commit()
@@ -399,11 +367,8 @@ async def pause_conversation(conversation_id: str, db: Session = Depends(get_db)
     if not db_conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
-    if conversation_id in active_conversations:
-        oh_conv = active_conversations[conversation_id]["conversation"]
-        oh_conv.pause()
-        db_conv.status = "paused"
-        db.commit()
+    db_conv.status = "paused"
+    db.commit()
     
     return {"message": "Conversation paused"}
 
@@ -415,40 +380,10 @@ async def resume_conversation(conversation_id: str, db: Session = Depends(get_db
     if not db_conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
-    if conversation_id in active_conversations:
-        oh_conv = active_conversations[conversation_id]["conversation"]
-        oh_conv.resume()
-        db_conv.status = "running"
-        db.commit()
+    db_conv.status = "running"
+    db.commit()
     
     return {"message": "Conversation resumed"}
-
-
-@app.get("/api/conversations/{conversation_id}/files")
-async def list_files(conversation_id: str):
-    """List files in conversation workspace"""
-    if conversation_id not in active_conversations:
-        workspace_path = f"./workspaces/{conversation_id}"
-    else:
-        workspace_path = active_conversations[conversation_id]["workspace_path"]
-    
-    if not os.path.exists(workspace_path):
-        return {"files": []}
-    
-    files = []
-    for root, dirs, filenames in os.walk(workspace_path):
-        for filename in filenames:
-            filepath = os.path.join(root, filename)
-            rel_path = os.path.relpath(filepath, workspace_path)
-            stat = os.stat(filepath)
-            files.append({
-                "name": filename,
-                "path": rel_path,
-                "size": stat.st_size,
-                "modified": datetime.fromtimestamp(stat.st_mtime).isoformat()
-            })
-    
-    return {"files": files}
 
 
 if __name__ == "__main__":
