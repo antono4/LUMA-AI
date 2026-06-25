@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Plus, Trash2, Menu, X, Sparkles, Zap, Shield, Code } from 'lucide-react';
+import { Plus, Trash2, Menu, X, Sparkles, Zap, Shield, Code } from 'lucide-react';
 import { api } from './lib/api';
-import type { Conversation, Message, ConversationSummary } from './types';
+import type { Message, ConversationSummary } from './types';
 
 export default function App() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
+  const [currentConversationTitle, setCurrentConversationTitle] = useState<string>('New Chat');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -73,7 +73,7 @@ export default function App() {
     try {
       const conv = await api.getConversation(id);
       setCurrentConversationId(id);
-      setCurrentConversation(conv);
+      setCurrentConversationTitle(conv.title || 'New Chat');
       setMessages(conv.messages || []);
     } catch (error) {
       console.error('Failed to load conversation:', error);
@@ -116,23 +116,25 @@ export default function App() {
     };
     setMessages(prev => [...prev, tempUserMsg]);
 
+    let accumulatedContent = '';
+
     try {
       await api.sendMessage(currentConversationId, userMessage, (event) => {
         if (event.type === 'content') {
-          setStreamingContent(prev => prev + event.data);
+          accumulatedContent += event.data as string;
+          setStreamingContent(accumulatedContent);
         }
       });
 
-      // Add assistant message from streaming content
-      const finalContent = streamingContent;
-      if (finalContent) {
+      // Add assistant message from accumulated content
+      if (accumulatedContent) {
         const assistantMsg: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: finalContent,
+          content: accumulatedContent,
           created_at: new Date().toISOString(),
         };
-        setMessages(prev => [...prev.filter(m => m.id !== tempUserMsg.id), tempUserMsg, assistantMsg]);
+        setMessages(prev => [...prev, assistantMsg]);
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -278,8 +280,8 @@ export default function App() {
               {showSidebar ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <div className="flex items-center gap-3">
-              <MessageCircle className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
-              <h2 className="font-semibold">{currentConversation?.title || 'New Chat'}</h2>
+              <Sparkles className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+              <h2 className="font-semibold">{currentConversationTitle}</h2>
             </div>
           </div>
           <div className="flex items-center gap-2">

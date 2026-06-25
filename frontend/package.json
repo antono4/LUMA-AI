@@ -1,5 +1,5 @@
 {
-  "name": "openhands-frontend",
+  "name": "luma-ai-frontend",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -11,10 +11,8 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.21.0",
     "lucide-react": "^0.303.0",
-    "clsx": "^2.1.0",
-    "date-fns": "^3.0.6"
+    "clsx": "^2.1.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
