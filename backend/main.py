@@ -1,11 +1,12 @@
 """
 LUMA AI Assistant Backend
-FastAPI server with OpenHands Cloud API integration
+FastAPI server with Ollama (FREE) or OpenHands Cloud API integration
 """
 
 import os
 import uuid
 import json
+import asyncio
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
@@ -22,7 +23,22 @@ from sse_starlette.sse import EventSourceResponse
 # Load environment variables from .env file
 load_dotenv()
 
-# OpenHands Cloud API Configuration
+# ============================================
+# AI PROVIDER CONFIGURATION
+# ============================================
+# Set AI_PROVIDER to "ollama" for FREE local AI, or "openai" for OpenAI API
+# For Ollama, download from: https://ollama.ai
+AI_PROVIDER = os.getenv("AI_PROVIDER", "ollama").lower()
+
+# Ollama Configuration (FREE - local AI)
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")  # Default model, change to "mistral", "phi3", etc.
+
+# OpenAI Configuration (if using OpenAI)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+# OpenHands Cloud API Configuration (legacy)
 OPENHANDS_API_BASE_URL = "https://app.all-hands.dev/api/v1"
 OPENHANDS_API_KEY = os.getenv("OPENHANDS_API_KEY", "")
 
@@ -112,8 +128,21 @@ def get_headers() -> Dict[str, str]:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Starting LUMA AI Assistant...")
-    if not OPENHANDS_API_KEY:
-        print("⚠️ WARNING: OPENHANDS_API_KEY not set. Please set it in .env file.")
+    
+    # Display AI Provider info
+    if AI_PROVIDER == "ollama":
+        print(f"🤖 Using OLLAMA (FREE local AI) - {OLLAMA_BASE_URL}")
+        print(f"   Model: {OLLAMA_MODEL}")
+        print("   💡 Make sure Ollama is installed and running!")
+        print("   📥 Install: https://ollama.ai")
+        print("   🚀 Run: ollama serve")
+    elif AI_PROVIDER == "openai":
+        print(f"🤖 Using OpenAI API - Model: {OPENAI_MODEL}")
+        if not OPENAI_API_KEY:
+            print("⚠️ WARNING: OPENAI_API_KEY not set!")
+    else:
+        print("⚠️ WARNING: Unknown AI_PROVIDER. Set AI_PROVIDER=ollama or openai in .env")
+    
     yield
     print("👋 Shutting down...")
 
@@ -121,7 +150,7 @@ async def lifespan(app: FastAPI):
 # FastAPI App
 app = FastAPI(
     title="LUMA AI Assistant",
-    description="AI-powered development assistant powered by OpenHands Cloud",
+    description="AI-powered assistant using FREE Ollama (local) or OpenAI API",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -248,10 +277,7 @@ async def send_message(
     message: MessageCreate,
     db: Session = Depends(get_db)
 ):
-    """Send a message and get streaming response via OpenHands Cloud API"""
-    if not OPENHANDS_API_KEY:
-        raise HTTPException(status_code=500, detail="OpenHands API key not configured")
-    
+    """Send a message and get streaming response via configured AI provider"""
     db_conv = db.query(ConversationDB).filter(ConversationDB.id == conversation_id).first()
     if not db_conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -282,44 +308,141 @@ async def send_message(
         }
         
         try:
-            async with httpx.AsyncClient(timeout=300.0) as client:
-                # Call OpenHands Cloud API - create conversation with initial message
-                response = await client.post(
-                    f"{OPENHANDS_API_BASE_URL}/app-conversations",
-                    headers=get_headers(),
-                    json={
-                        "initial_message": {
-                            "content": [{"type": "text", "text": message.content}]
+            if AI_PROVIDER == "ollama":
+                # =====================
+                # OLLAMA (FREE LOCAL AI)
+                # =====================
+                async with httpx.AsyncClient(timeout=300.0) as client:
+                    # First, check if Ollama is available
+                    try:
+                        health_resp = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
+                        if health_resp.status_code != 200:
+                            yield {
+                                "event": "error",
+                                "data": json.dumps({"error": "Ollama is not running. Please install and start Ollama."})
+                            }
+                            return
+                    except Exception:
+                        yield {
+                            "event": "error",
+                            "data": json.dumps({"error": "Cannot connect to Ollama. Make sure Ollama is installed and running on " + OLLAMA_BASE_URL})
                         }
-                    },
-                    timeout=300.0
-                )
-                
-                if response.status_code in (200, 201):
-                    response_data = response.json()
-                    # Extract response from OpenHands API
-                    full_response = response_data.get("response", "")
-                    if not full_response:
-                        full_response = "Conversation started. Check OpenHands dashboard for details."
+                        return
                     
-                    # Store the OpenHands conversation ID
-                    oh_conv_id = response_data.get("app_conversation_id") or response_data.get("id")
-                    if oh_conv_id and not db_conv.oh_conversation_id:
-                        db_conv.oh_conversation_id = oh_conv_id
-                        db.commit()
+                    # Get conversation history for context
+                    db_messages = db.query(MessageDB).filter(
+                        MessageDB.conversation_id == conversation_id
+                    ).order_by(MessageDB.created_at).all()
                     
-                    # Stream the response content
-                    yield {
-                        "event": "content",
-                        "data": json.dumps({"content": full_response})
-                    }
-                else:
-                    error_msg = f"OpenHands API error: {response.status_code} - {response.text}"
+                    # Build messages array for context
+                    messages_history = [
+                        {"role": m.role, "content": m.content}
+                        for m in db_messages[:-1]  # Exclude the new message we just added
+                    ]
+                    
+                    # Stream response from Ollama
+                    async with client.stream(
+                        "POST",
+                        f"{OLLAMA_BASE_URL}/api/chat",
+                        json={
+                            "model": OLLAMA_MODEL,
+                            "messages": messages_history + [{"role": "user", "content": message.content}],
+                            "stream": True
+                        },
+                        timeout=300.0
+                    ) as response:
+                        if response.status_code == 200:
+                            async for line in response.aiter_lines():
+                                if line.strip():
+                                    try:
+                                        data = json.loads(line)
+                                        if "message" in data and "content" in data["message"]:
+                                            chunk = data["message"]["content"]
+                                            full_response += chunk
+                                            yield {
+                                                "event": "content",
+                                                "data": json.dumps({"content": chunk})
+                                            }
+                                        if data.get("done", False):
+                                            break
+                                    except json.JSONDecodeError:
+                                        continue
+                        else:
+                            error_msg = f"Ollama API error: {response.status_code}"
+                            yield {
+                                "event": "error",
+                                "data": json.dumps({"error": error_msg})
+                            }
+                            full_response = error_msg
+                            
+            elif AI_PROVIDER == "openai":
+                # =====================
+                # OPENAI API
+                # =====================
+                if not OPENAI_API_KEY:
                     yield {
                         "event": "error",
-                        "data": json.dumps({"error": error_msg})
+                        "data": json.dumps({"error": "OpenAI API key not configured"})
                     }
-                    full_response = error_msg
+                    return
+                
+                async with httpx.AsyncClient(timeout=300.0) as client:
+                    # Get conversation history for context
+                    db_messages = db.query(MessageDB).filter(
+                        MessageDB.conversation_id == conversation_id
+                    ).order_by(MessageDB.created_at).all()
+                    
+                    messages_history = [
+                        {"role": m.role, "content": m.content}
+                        for m in db_messages[:-1]
+                    ]
+                    
+                    response = await client.post(
+                        "https://api.openai.com/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {OPENAI_API_KEY}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": OPENAI_MODEL,
+                            "messages": messages_history + [{"role": "user", "content": message.content}],
+                            "stream": True
+                        },
+                        timeout=300.0
+                    )
+                    
+                    if response.status_code == 200:
+                        async for line in response.aiter_lines():
+                            if line.strip() and line.startswith("data: "):
+                                data_str = line[6:]  # Remove "data: " prefix
+                                if data_str == "[DONE]":
+                                    break
+                                try:
+                                    data = json.loads(data_str)
+                                    if "choices" in data and len(data["choices"]) > 0:
+                                        delta = data["choices"][0].get("delta", {})
+                                        if "content" in delta:
+                                            chunk = delta["content"]
+                                            full_response += chunk
+                                            yield {
+                                                "event": "content",
+                                                "data": json.dumps({"content": chunk})
+                                            }
+                                except json.JSONDecodeError:
+                                    continue
+                    else:
+                        error_msg = f"OpenAI API error: {response.status_code}"
+                        yield {
+                            "event": "error",
+                            "data": json.dumps({"error": error_msg})
+                        }
+                        full_response = error_msg
+            else:
+                yield {
+                    "event": "error",
+                    "data": json.dumps({"error": f"Unknown AI provider: {AI_PROVIDER}. Set AI_PROVIDER=ollama or openai in .env"})
+                }
+                full_response = "Unknown AI provider"
                     
         except Exception as e:
             full_response = f"Error: {str(e)}"
