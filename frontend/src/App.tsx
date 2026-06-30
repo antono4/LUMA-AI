@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, Menu, X, Sparkles, Zap, Shield, Code } from 'lucide-react';
+import { Plus, Trash2, Menu, X, Sparkles, Zap, Shield, Code, Settings } from 'lucide-react';
 import { api } from './lib/api';
 import type { Message, ConversationSummary } from './types';
 
@@ -13,6 +13,12 @@ export default function App() {
   const [streamingContent, setStreamingContent] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [aiProvider, setAiProvider] = useState(localStorage.getItem('ai_provider') || 'openrouter');
+  const [openrouterKey, setOpenrouterKey] = useState(localStorage.getItem('openrouter_api_key') || '');
+  const [openaiKey, setOpenaiKey] = useState(localStorage.getItem('openai_api_key') || '');
+  const [ollamaUrl, setOllamaUrl] = useState(localStorage.getItem('ollama_url') || 'http://localhost:11434');
+  const [ollamaModel, setOllamaModel] = useState(localStorage.getItem('ollama_model') || 'llama3.2');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -39,12 +45,11 @@ export default function App() {
       }
     } catch (error) {
       console.error('Failed to initialize:', error);
-      // Show welcome message with backend connection error
       setConversations([]);
       setMessages([{
         id: 'welcome-error',
         role: 'assistant',
-        content: '🔌 **Tidak dapat terhubung ke Backend Server**\n\nAplikasi membutuhkan server backend untuk berfungsi.\n\nJalankan secara lokal:\n1. cd backend\n2. pip install -r requirements.txt\n3. python main.py',
+        content: '🔌 **Selamat Datang di LUMA AI!**\n\nKlik tombol ⚙️ di pojok kiri atas untuk mengatur API key AI.\n\n**Pilihan AI Gratis:**\n1. **OpenRouter** (Rekomendasi) - API key gratis di openrouter.ai\n2. **Ollama** - Jalankan AI lokal secara gratis',
         created_at: new Date().toISOString(),
       }]);
     } finally {
@@ -142,7 +147,7 @@ export default function App() {
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Maaf, terjadi kesalahan: ${error instanceof Error ? error.message : 'Tidak dapat terhubung ke server. Pastikan backend berjalan di port 8000.'}`,
+        content: `Maaf, terjadi kesalahan: ${error instanceof Error ? error.message : 'Tidak dapat terhubung ke AI. Pastikan API key sudah benar.'}`,
         created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev.filter(m => m.id !== tempUserMsg.id), tempUserMsg, errorMsg]);
@@ -184,14 +189,25 @@ export default function App() {
         <div className="w-80 h-full flex flex-col border-r" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
           {/* Logo */}
           <div className="p-6 border-b" style={{ borderColor: 'var(--border-color)' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center animate-pulse-glow" style={{ background: 'var(--accent-gradient)' }}>
-                <Sparkles className="w-5 h-5 text-white" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center animate-pulse-glow" style={{ background: 'var(--accent-gradient)' }}>
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="font-bold text-lg gradient-text">LUMA AI</h1>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {aiProvider === 'openrouter' ? '🆓 Free (OpenRouter)' : aiProvider === 'openai' ? '💰 OpenAI' : '🤖 Ollama'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="font-bold text-lg gradient-text">LUMA AI</h1>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>AI Assistant</p>
-              </div>
+              <button
+                onClick={() => setShowSettings(true)}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                title="Pengaturan AI"
+              >
+                <Settings className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+              </button>
             </div>
           </div>
 
@@ -460,6 +476,156 @@ export default function App() {
           </form>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass rounded-2xl p-6 max-w-md w-full" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold gradient-text">Pengaturan AI</h2>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+              </button>
+            </div>
+
+            {/* AI Provider Selection */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                Provider AI
+              </label>
+              <select
+                value={aiProvider}
+                onChange={(e) => {
+                  setAiProvider(e.target.value);
+                  localStorage.setItem('ai_provider', e.target.value);
+                }}
+                className="w-full px-4 py-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-white focus:outline-none focus:border-[var(--accent-primary)]"
+              >
+                <option value="openrouter">🆓 OpenRouter (Gratis - Rekomendasi)</option>
+                <option value="openai">💰 OpenAI (Berbayar)</option>
+                <option value="ollama">🤖 Ollama (Lokal Gratis)</option>
+              </select>
+            </div>
+
+            {/* OpenRouter Settings */}
+            {aiProvider === 'openrouter' && (
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    OpenRouter API Key
+                  </label>
+                  <input
+                    type="password"
+                    value={openrouterKey}
+                    onChange={(e) => setOpenrouterKey(e.target.value)}
+                    placeholder="sk-or-v1-..."
+                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)]"
+                  />
+                </div>
+                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    <strong className="text-blue-400">💡 Tips:</strong> Daftar di{' '}
+                    <a
+                      href="https://openrouter.ai/keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 underline hover:text-blue-300"
+                    >
+                      OpenRouter
+                    </a>{' '}
+                    untuk mendapatkan API key gratis. Model default: <code className="text-green-400">google/gemma-2-9b-it:free</code>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* OpenAI Settings */}
+            {aiProvider === 'openai' && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                  OpenAI API Key
+                </label>
+                <input
+                  type="password"
+                  value={openaiKey}
+                  onChange={(e) => setOpenaiKey(e.target.value)}
+                  placeholder="sk-..."
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)]"
+                />
+                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+                  Dapatkan dari: <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">platform.openai.com</a>
+                </p>
+              </div>
+            )}
+
+            {/* Ollama Settings */}
+            {aiProvider === 'ollama' && (
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    Ollama URL
+                  </label>
+                  <input
+                    type="text"
+                    value={ollamaUrl}
+                    onChange={(e) => setOllamaUrl(e.target.value)}
+                    placeholder="http://localhost:11434"
+                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    Model
+                  </label>
+                  <input
+                    type="text"
+                    value={ollamaModel}
+                    onChange={(e) => setOllamaModel(e.target.value)}
+                    placeholder="llama3.2"
+                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-primary)]"
+                  />
+                </div>
+                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    <strong className="text-yellow-400">💡 Tips:</strong> Install Ollama dari{' '}
+                    <a
+                      href="https://ollama.ai"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-yellow-400 underline hover:text-yellow-300"
+                    >
+                      ollama.ai
+                    </a>{' '}
+                    lalu jalankan <code className="text-green-400">ollama serve</code>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Save Button */}
+            <button
+              onClick={() => {
+                if (aiProvider === 'openrouter') {
+                  localStorage.setItem('openrouter_api_key', openrouterKey);
+                } else if (aiProvider === 'openai') {
+                  localStorage.setItem('openai_api_key', openaiKey);
+                } else if (aiProvider === 'ollama') {
+                  localStorage.setItem('ollama_url', ollamaUrl);
+                  localStorage.setItem('ollama_model', ollamaModel);
+                }
+                setShowSettings(false);
+              }}
+              className="w-full py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 btn-glow"
+              style={{ background: 'var(--accent-gradient)', color: 'white' }}
+            >
+              Simpan Pengaturan
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
