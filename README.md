@@ -1,1 +1,26 @@
-Last updated: 2026-10-09 14:38:25 WIB
+# LUMA-AI
+
+
+
+## 📋 Overview
+
+This repository contains **39 files** and is built with the following technologies:
+
+HTML
+
+## 🚀 Quick Start
+
+## ✨ Features
+
+- 📝 Auto-generated documentation
+
+## 🛠️ Technologies
+
+HTML
+
+## 📄 License
+
+MIT License
+
+---
+*Last updated: 2026-10-09 17:17:48 WIB*
