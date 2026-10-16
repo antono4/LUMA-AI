@@ -4,24 +4,30 @@ FastAPI server with OpenHands SDK integration
 """
 
 import os
+import json
 import uuid
 import asyncio
+import threading
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import create_engine, Column, String, Text, DateTime, Float, Integer
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import create_engine, Column, String, Text, DateTime
+from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from sse_starlette.sse import EventSourceResponse
 
 # OpenHands SDK imports
-from openhands.sdk import LLM, Agent
-from openhands.sdk.conversation import Conversation as OHConversation
+from openhands.sdk import LLM, Agent, Conversation as OHConversation
+from openhands.sdk.event import (
+    ActionEvent,
+    AgentErrorEvent,
+    MessageEvent,
+    ObservationEvent,
+    PauseEvent,
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -101,19 +107,69 @@ def get_db():
 
 
 def get_llm() -> LLM:
-    """Initialize LLM with environment variables"""
-    return LLM(
-        model=os.getenv("LLM_MODEL", "gpt-4o"),
-        api_key=os.getenv("OPENAI_API_KEY"),
-        base_url=os.getenv("LLM_BASE_URL"),
-    )
+    """Initialize LLM with environment variables."""
+    kwargs: Dict[str, Any] = {"model": os.getenv("LLM_MODEL", "gpt-4o")}
+    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("LLM_API_KEY")
+    if api_key:
+        kwargs["api_key"] = api_key
+    base_url = os.getenv("LLM_BASE_URL")
+    if base_url:
+        kwargs["base_url"] = base_url
+    return LLM(**kwargs)
 
 
 def get_agent(llm: LLM) -> Agent:
-    """Create agent with default tools"""
-    return Agent(
-        llm=llm,
-    )
+    """Create agent with default tools."""
+    return Agent(llm=llm)
+
+
+def event_to_payload(event: Any) -> Optional[Dict[str, str]]:
+    """Convert an SDK event into a browser-friendly chunk.
+
+    Returns ``None`` for events that carry nothing worth showing.
+    """
+    # The user's own message is re-emitted on the event stream; the frontend
+    # already renders it locally, so skip it to avoid a duplicate bubble.
+    if getattr(event, "source", None) == "user":
+        return None
+    if isinstance(event, ActionEvent):
+        thought = (event.thought or "").strip()
+        tool = event.tool_name or "tool"
+        if thought:
+            return {"kind": "thought", "content": thought, "tool": tool}
+        return {"kind": "action", "content": f"Calling {tool}...", "tool": tool}
+    if isinstance(event, ObservationEvent):
+        text = str(event.observation) if event.observation is not None else ""
+        if not text:
+            return None
+        return {"kind": "observation", "content": text, "tool": event.tool_name or "tool"}
+    if isinstance(event, MessageEvent):
+        text = message_event_text(event)
+        if not text:
+            return None
+        return {"kind": "message", "content": text, "tool": ""}
+    if isinstance(event, AgentErrorEvent):
+        return {"kind": "error", "content": event.error or "Agent error", "tool": event.tool_name or ""}
+    if isinstance(event, PauseEvent):
+        return {"kind": "paused", "content": "Conversation paused.", "tool": ""}
+    return None
+
+
+def message_event_text(event: MessageEvent) -> str:
+    """Pull plain text out of a MessageEvent's litellm message."""
+    content = getattr(event.llm_message, "content", None)
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            text = getattr(block, "text", None)
+            if text:
+                parts.append(text)
+            elif isinstance(block, dict) and block.get("text"):
+                parts.append(block["text"])
+        return "\n".join(parts)
+    return ""
 
 
 # Lifespan for startup/shutdown
@@ -170,21 +226,11 @@ async def create_conversation(conversation_data: ConversationCreate, db: Session
     db.commit()
     db.refresh(db_conv)
     
-    # Initialize OpenHands conversation
+    # Workspace is created eagerly; the SDK conversation is built on first
+    # message so that creating a chat never needs model credentials.
     workspace_path = f"./workspaces/{conv_id}"
     os.makedirs(workspace_path, exist_ok=True)
-    
-    llm = get_llm()
-    agent = get_agent(llm)
-    oh_conv = OHConversation(agent=agent, workspace=workspace_path)
-    
-    active_conversations[conv_id] = {
-        "llm": llm,
-        "agent": agent,
-        "conversation": oh_conv,
-        "workspace_path": workspace_path,
-    }
-    
+
     return ConversationModel(
         id=conv_id,
         title=title,
@@ -256,9 +302,13 @@ async def delete_conversation(conversation_id: str, db: Session = Depends(get_db
     if not db_conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
-    # Remove from active conversations
-    if conversation_id in active_conversations:
-        del active_conversations[conversation_id]
+    # Remove from active conversations and release SDK resources
+    entry = active_conversations.pop(conversation_id, None)
+    if entry is not None:
+        try:
+            entry["conversation"].close()
+        except Exception:
+            pass
     
     # Delete messages
     db.query(MessageDB).filter(MessageDB.conversation_id == conversation_id).delete()
@@ -268,159 +318,180 @@ async def delete_conversation(conversation_id: str, db: Session = Depends(get_db
     return {"message": "Conversation deleted"}
 
 
+def build_conversation(conversation_id: str, workspace_path: str) -> Dict[str, Any]:
+    """Create an SDK conversation whose event sink can be swapped per request.
+
+    The SDK binds its callbacks once, when the conversation is constructed, but
+    each HTTP request streams into its own queue. Routing through a mutable
+    ``entry["sink"]`` lets later requests receive events too; passing a
+    request-scoped callback here would send them to the first request's queue.
+    """
+    llm = get_llm()
+    agent = get_agent(llm)
+
+    def dispatch(event: Any) -> None:
+        sink = entry["sink"]
+        if sink is None:
+            return
+        payload = event_to_payload(event)
+        if payload:
+            sink(payload)
+
+    oh_conv = OHConversation(
+        agent=agent,
+        workspace=workspace_path,
+        callbacks=[dispatch],
+        delete_on_close=False,
+    )
+    entry: Dict[str, Any] = {
+        "llm": llm,
+        "agent": agent,
+        "conversation": oh_conv,
+        "workspace_path": workspace_path,
+        "sink": None,
+    }
+    return entry
+
+
 @app.post("/api/conversations/{conversation_id}/messages")
 async def send_message(
     conversation_id: str,
     message: MessageCreate,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """Send a message and get streaming response"""
+    """Send a message and stream the agent's output back as SSE."""
     db_conv = db.query(ConversationDB).filter(ConversationDB.id == conversation_id).first()
     if not db_conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    # Save user message
+
     user_msg_id = str(uuid.uuid4())
-    db_msg = MessageDB(
-        id=user_msg_id,
-        conversation_id=conversation_id,
-        role="user",
-        content=message.content
+    db.add(
+        MessageDB(
+            id=user_msg_id,
+            conversation_id=conversation_id,
+            role="user",
+            content=message.content,
+        )
     )
-    db.add(db_msg)
-    db.commit()
-    
-    # Update conversation status
     db_conv.status = "running"
     db_conv.updated_at = datetime.utcnow()
     db.commit()
-    
+
+    workspace_path = f"./workspaces/{conversation_id}"
+    os.makedirs(workspace_path, exist_ok=True)
+
+    msg_id = str(uuid.uuid4())
+
     async def event_generator():
-        if conversation_id not in active_conversations:
-            llm = get_llm()
-            agent = get_agent(llm)
-            workspace_path = f"./workspaces/{conversation_id}"
-            os.makedirs(workspace_path, exist_ok=True)
-            oh_conv = OHConversation(agent=agent, workspace=workspace_path)
-            active_conversations[conversation_id] = {
-                "llm": llm,
-                "agent": agent,
-                "conversation": oh_conv,
-                "workspace_path": workspace_path,
-            }
-        
-        oh_conv = active_conversations[conversation_id]["conversation"]
-        
-        # Send message to OpenHands
-        oh_conv.send_message(message.content)
-        
-        # Stream responses
-        full_response = ""
-        msg_id = str(uuid.uuid4())
-        
-        yield {
-            "event": "message_start",
-            "data": f'{{"id": "{msg_id}", "role": "assistant"}}'
-        }
-        
-        # Run conversation and stream output
+        queue: asyncio.Queue = asyncio.Queue()
+        loop = asyncio.get_running_loop()
+
+        def sink(payload: Dict[str, str]) -> None:
+            loop.call_soon_threadsafe(queue.put_nowait, payload)
+
+        entry = active_conversations.get(conversation_id)
+        if entry is None:
+            entry = build_conversation(conversation_id, workspace_path)
+            active_conversations[conversation_id] = entry
+        oh_conv = entry["conversation"]
+        # Route this request's events to this request's queue.
+        entry["sink"] = sink
+
+        yield {"event": "message_start", "data": json.dumps({"id": msg_id, "role": "assistant"})}
+
+        chunks: List[str] = []
+        error_text: Optional[str] = None
+
+        def drive() -> None:
+            try:
+                oh_conv.send_message(message.content)
+                oh_conv.run()
+            except Exception as exc:  # surfaced to the browser below
+                loop.call_soon_threadsafe(queue.put_nowait, {"kind": "error", "content": str(exc), "tool": ""})
+            finally:
+                loop.call_soon_threadsafe(queue.put_nowait, None)
+
+        runner = asyncio.create_task(asyncio.to_thread(drive))
         try:
-            for event in oh_conv.run_iter(events=['action', 'observation']):
-                event_type = event.get("type", "")
-                event_data = event.get("data", {})
-                
-                if event_type == "action":
-                    action = event_data.get("action", "")
-                    content = event_data.get("content", "")
-                    if content:
-                        full_response += f"{content}\n"
-                        yield {
-                            "event": "content",
-                            "data": f'{{"content": {repr(content)}}}'
-                        }
-                
-                elif event_type == "observation":
-                    observation = event_data.get("observation", "")
-                    content = event_data.get("content", "")
-                    if content:
-                        full_response += f"[{observation}] {content}\n"
-                        yield {
-                            "event": "content",
-                            "data": f'{{"content": "[{observation}] {content}"}}'
-                        }
-                        
-        except Exception as e:
-            yield {
-                "event": "error",
-                "data": f'{{"error": "{str(e)}"}}'
-            }
-        
-        # Save assistant message
-        assistant_msg = MessageDB(
-            id=msg_id,
-            conversation_id=conversation_id,
-            role="assistant",
-            content=full_response
+            while True:
+                payload = await queue.get()
+                if payload is None:
+                    break
+                if payload["kind"] == "error":
+                    error_text = payload["content"]
+                    yield {"event": "error", "data": json.dumps({"error": payload["content"]})}
+                    continue
+                chunks.append(payload["content"])
+                yield {"event": "content", "data": json.dumps({"content": payload["content"], "kind": payload["kind"], "tool": payload["tool"]})}
+        finally:
+            await runner
+            entry["sink"] = None
+
+        db.add(
+            MessageDB(
+                id=msg_id,
+                conversation_id=conversation_id,
+                role="assistant",
+                content="\n\n".join(chunks) if chunks else (error_text or ""),
+            )
         )
-        db.add(assistant_msg)
         db_conv.status = "idle"
+        db_conv.updated_at = datetime.utcnow()
         db.commit()
-        
-        yield {
-            "event": "message_end",
-            "data": f'{{"id": "{msg_id}"}}'
-        }
-    
+
+        yield {"event": "message_end", "data": json.dumps({"id": msg_id})}
+
     return EventSourceResponse(event_generator())
 
 
 @app.post("/api/conversations/{conversation_id}/stop")
 async def stop_conversation(conversation_id: str, db: Session = Depends(get_db)):
-    """Stop a running conversation"""
+    """Stop a running conversation."""
     db_conv = db.query(ConversationDB).filter(ConversationDB.id == conversation_id).first()
     if not db_conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    if conversation_id in active_conversations:
-        oh_conv = active_conversations[conversation_id]["conversation"]
-        oh_conv.stop()
-    
+
+    entry = active_conversations.get(conversation_id)
+    if entry is not None:
+        entry["conversation"].interrupt()
+
     db_conv.status = "idle"
     db.commit()
-    
+
     return {"message": "Conversation stopped"}
 
 
 @app.post("/api/conversations/{conversation_id}/pause")
 async def pause_conversation(conversation_id: str, db: Session = Depends(get_db)):
-    """Pause a running conversation"""
+    """Pause a running conversation."""
     db_conv = db.query(ConversationDB).filter(ConversationDB.id == conversation_id).first()
     if not db_conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    if conversation_id in active_conversations:
-        oh_conv = active_conversations[conversation_id]["conversation"]
-        oh_conv.pause()
-        db_conv.status = "paused"
-        db.commit()
-    
+
+    entry = active_conversations.get(conversation_id)
+    if entry is not None:
+        entry["conversation"].pause()
+
+    db_conv.status = "paused"
+    db.commit()
+
     return {"message": "Conversation paused"}
 
 
 @app.post("/api/conversations/{conversation_id}/resume")
 async def resume_conversation(conversation_id: str, db: Session = Depends(get_db)):
-    """Resume a paused conversation"""
+    """Resume a paused conversation."""
     db_conv = db.query(ConversationDB).filter(ConversationDB.id == conversation_id).first()
     if not db_conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    if conversation_id in active_conversations:
-        oh_conv = active_conversations[conversation_id]["conversation"]
-        oh_conv.resume()
-        db_conv.status = "running"
-        db.commit()
-    
+
+    entry = active_conversations.get(conversation_id)
+    if entry is not None:
+        await asyncio.to_thread(entry["conversation"].run)
+
+    db_conv.status = "idle"
+    db.commit()
+
     return {"message": "Conversation resumed"}
 
 

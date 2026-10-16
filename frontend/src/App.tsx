@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Plus, Trash2, Menu, X, Sparkles, Zap, Shield, Code } from 'lucide-react';
+import { MessageCircle, Plus, Trash2, Menu, X, Sparkles, Zap, Shield, Code, FlaskConical } from 'lucide-react';
 import { api } from './lib/api';
+import { detectDemoMode } from './lib/demo';
 import type { Conversation, Message, ConversationSummary } from './types';
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
   const [streamingContent, setStreamingContent] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -30,6 +32,8 @@ export default function App() {
 
   const initApp = async () => {
     try {
+      const demo = await detectDemoMode();
+      setIsDemo(demo);
       const convs = await api.listConversations();
       setConversations(convs);
       if (convs.length > 0) {
@@ -39,7 +43,6 @@ export default function App() {
       }
     } catch (error) {
       console.error('Failed to initialize:', error);
-      // Show welcome message with backend connection error
       setConversations([]);
       setMessages([{
         id: 'welcome-error',
@@ -117,22 +120,29 @@ export default function App() {
     setMessages(prev => [...prev, tempUserMsg]);
 
     try {
-      await api.sendMessage(currentConversationId, userMessage, (event) => {
+      let streamError: string | null = null;
+      const assistantMsg = await api.sendMessage(currentConversationId, userMessage, (event) => {
         if (event.type === 'content') {
-          setStreamingContent(prev => prev + event.data);
+          setStreamingContent(prev =>
+            prev ? `${prev}\n\n${String(event.data)}` : String(event.data)
+          );
+        } else if (event.type === 'error') {
+          streamError = String(event.data);
         }
       });
 
-      // Add assistant message from streaming content
-      const finalContent = streamingContent;
-      if (finalContent) {
-        const assistantMsg: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: finalContent,
-          created_at: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev.filter(m => m.id !== tempUserMsg.id), tempUserMsg, assistantMsg]);
+      // The backend reports run failures as an SSE `error` frame; surface it
+      // instead of silently ending with an empty reply.
+      const content = assistantMsg.content || streamError || '';
+      if (content) {
+        const finalMsg: Message = { ...assistantMsg, content };
+        setMessages(prev => [
+          ...prev.filter(m => m.id !== tempUserMsg.id),
+          tempUserMsg,
+          finalMsg,
+        ]);
+      } else {
+        setMessages(prev => [...prev, tempUserMsg]);
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -291,6 +301,24 @@ export default function App() {
             )}
           </div>
         </header>
+
+        {/* Demo mode notice */}
+        {isDemo && (
+          <div
+            className="px-6 py-2 flex items-center justify-center gap-2 text-xs border-b"
+            style={{
+              borderColor: 'var(--border-color)',
+              background: 'rgba(245, 158, 11, 0.1)',
+              color: 'var(--warning)',
+            }}
+          >
+            <FlaskConical className="w-3.5 h-3.5" />
+            <span>
+              Mode pratinjau statis — balasan contoh, bukan dari model. Jalankan
+              backend lokal untuk mengobrol sungguhan.
+            </span>
+          </div>
+        )}
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6">
