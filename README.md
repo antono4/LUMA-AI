@@ -1,5 +1,7 @@
 # LUMA-AI ✨
 
+![LUMA-AI Banner](https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800)
+
 AI-powered application with advanced machine learning capabilities.
 
 ## ✨ Features
